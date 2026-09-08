@@ -1,27 +1,22 @@
 # Assets
 
-## Required Audio Files
+## Audio Files
 
-Place the following MP3 files in the `public/audio/` directory:
+Audio files are generated programmatically as WAV files in `public/audio/`:
 
-- `stage-start.mp3` - Bell/chime for stage start
-- `stage-end.mp3` - Bell/chime for stage end
-- `rest-start.mp3` - Distinct sound for rest period start
-- `rest-end.mp3` - Sound for rest period end
-- `session-complete.mp3` - Celebration sound for session complete
-- `beep.mp3` - Short beep for countdown
+- `stage-start.wav` - Bell sound for stage start
+- `stage-end.wav` - Chime sound for stage end
+- `rest-start.wav` - Lower bell for rest period start
+- `rest-end.wav` - Chime for rest period end
+- `session-complete.wav` - Celebration arpeggio
+- `beep.wav` - Short beep for countdown
 
-You can use any short sound effects. Recommended sources:
-- https://freesound.org
-- https://mixkit.co/free-sound-effects/
+To regenerate: `node /tmp/generate-audio.js`
 
-## Required PWA Icons
+## PWA Icons
 
-Replace the placeholder files with actual icons:
+SVG icons are used for the PWA manifest:
 
-- `pwa-192x192.png` - 192x192 PNG icon
-- `pwa-512x512.png` - 512x512 PNG icon
-
-Generate icons from a source image using:
-- https://realfavicongenerator.net/
-- https://www.pwabuilder.com/imageGenerator
+- `favicon.svg` - Browser tab icon
+- `pwa-192x192.svg` - 192x192 PWA icon
+- `pwa-512x512.svg` - 512x512 PWA icon

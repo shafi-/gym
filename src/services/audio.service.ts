@@ -12,12 +12,12 @@ export class AudioService {
 
   private initializeSounds() {
     const soundFiles: Record<SoundId, string> = {
-      'stage-start': '/audio/stage-start.mp3',
-      'stage-end': '/audio/stage-end.mp3',
-      'rest-start': '/audio/rest-start.mp3',
-      'rest-end': '/audio/rest-end.mp3',
-      'session-complete': '/audio/session-complete.mp3',
-      'countdown-beep': '/audio/beep.mp3',
+      'stage-start': '/audio/stage-start.wav',
+      'stage-end': '/audio/stage-end.wav',
+      'rest-start': '/audio/rest-start.wav',
+      'rest-end': '/audio/rest-end.wav',
+      'session-complete': '/audio/session-complete.wav',
+      'countdown-beep': '/audio/beep.wav',
     };
 
     for (const [id, path] of Object.entries(soundFiles)) {
