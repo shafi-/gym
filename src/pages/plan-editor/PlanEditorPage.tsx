@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import type { Plan, WorkoutType, Stage } from '../../models/plan.model';
 import { StageRow } from '../../components/plan/StageRow';
 import { StageEditorModal } from '../../components/plan/StageEditorModal';
+import { TemplatePicker } from '../../components/plan/TemplatePicker';
 import { PageLayout } from '../../components/ui/PageLayout';
 import { PlanService } from '../../services/plan.service';
 import { MediaService } from '../../services/media.service';
+import type { ExerciseTemplate } from '../../data/templates';
 
 interface PlanEditorPageProps {
   plan?: Plan;
@@ -30,6 +32,7 @@ export function PlanEditorPage({ plan, onSave, onCancel }: PlanEditorPageProps) 
   // Stage editor modal state
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
+  const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
 
   useEffect(() => {
     if (editingIndex === null) {
@@ -74,6 +77,24 @@ export function PlanEditorPage({ plan, onSave, onCancel }: PlanEditorPageProps) 
     };
     setStages([...stages, newStage]);
     // Immediately open the editor for the new stage
+    setEditingIndex(stages.length);
+  }
+
+  function handleSelectTemplate(template: ExerciseTemplate) {
+    const newStage: Stage = {
+      id: generateId(),
+      planId: plan?.id ?? '',
+      order: stages.length,
+      name: template.name,
+      mediaType: null,
+      mediaId: null,
+      duration: template.duration,
+      reps: template.reps,
+      notes: template.notes,
+      restAfter: null,
+    };
+    setStages([...stages, newStage]);
+    // Open the editor so the user can fine-tune duration, add media, etc.
     setEditingIndex(stages.length);
   }
 
@@ -260,6 +281,13 @@ export function PlanEditorPage({ plan, onSave, onCancel }: PlanEditorPageProps) 
             <span className="text-lg leading-none">+</span>
             <span>Add New Stage</span>
           </button>
+
+          <button
+            onClick={() => setTemplatePickerOpen(true)}
+            className="w-full mt-2 py-2.5 text-sm text-primary-600 font-medium hover:bg-primary-50 rounded-lg transition-colors"
+          >
+            Or pick from a template…
+          </button>
         </div>
       </main>
 
@@ -272,6 +300,13 @@ export function PlanEditorPage({ plan, onSave, onCancel }: PlanEditorPageProps) 
         onUploadMedia={handleUploadMedia}
         previewSrc={previewSrc}
         onReplay={handleReplayPreview}
+      />
+
+      <TemplatePicker
+        open={templatePickerOpen}
+        planType={type}
+        onClose={() => setTemplatePickerOpen(false)}
+        onSelect={handleSelectTemplate}
       />
     </PageLayout>
   );
