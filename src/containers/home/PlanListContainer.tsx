@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { PlanCard } from '../../components/plan/PlanCard';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { PlanService } from '../../services/plan.service';
 import type { Plan } from '../../models/plan.model';
 import { Spinner } from '../../components/ui/Spinner';
@@ -15,6 +16,7 @@ export function PlanListContainer({ onSelectPlan, onCreatePlan }: PlanListContai
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
     loadPlans();
@@ -34,14 +36,16 @@ export function PlanListContainer({ onSelectPlan, onCreatePlan }: PlanListContai
     }
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm('Delete this plan?')) return;
+  async function confirmDelete() {
+    if (!pendingDeleteId) return;
     try {
-      await planService.deletePlan(id);
+      await planService.deletePlan(pendingDeleteId);
       await loadPlans();
     } catch (err) {
       setError('Failed to delete plan. Please try again.');
       console.error('Failed to delete plan:', err);
+    } finally {
+      setPendingDeleteId(null);
     }
   }
 
@@ -86,16 +90,28 @@ export function PlanListContainer({ onSelectPlan, onCreatePlan }: PlanListContai
   }
 
   return (
-    <div>
-      {plans.map((plan) => (
-        <PlanCard
-          key={plan.id}
-          plan={plan}
-          onSelect={() => onSelectPlan(plan.id)}
-          onDelete={() => handleDelete(plan.id)}
-          onDuplicate={() => handleDuplicate(plan.id)}
-        />
-      ))}
-    </div>
+    <>
+      <div>
+        {plans.map((plan) => (
+          <PlanCard
+            key={plan.id}
+            plan={plan}
+            onSelect={() => onSelectPlan(plan.id)}
+            onDelete={() => setPendingDeleteId(plan.id)}
+            onDuplicate={() => handleDuplicate(plan.id)}
+          />
+        ))}
+      </div>
+
+      <ConfirmDialog
+        open={pendingDeleteId !== null}
+        title="Delete Plan"
+        message="Are you sure you want to delete this plan? This will also remove its media."
+        confirmLabel="Delete"
+        danger
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDeleteId(null)}
+      />
+    </>
   );
 }

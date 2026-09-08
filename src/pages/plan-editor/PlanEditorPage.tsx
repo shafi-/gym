@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Plan, WorkoutType, Stage } from '../../models/plan.model';
-import { Button } from '../../components/ui/Button';
 import { StageRow } from '../../components/plan/StageRow';
+import { StageEditorModal } from '../../components/plan/StageEditorModal';
 import { PlanService } from '../../services/plan.service';
 import { MediaService } from '../../services/media.service';
 
@@ -26,6 +26,38 @@ export function PlanEditorPage({ plan, onSave, onCancel }: PlanEditorPageProps) 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Stage editor modal state
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (editingIndex === null) {
+      setPreviewSrc(null);
+      return;
+    }
+    const stage = stages[editingIndex];
+    if (!stage?.mediaId) {
+      setPreviewSrc(null);
+      return;
+    }
+
+    let cancelled = false;
+    let objectUrl: string | null = null;
+
+    async function loadPreview() {
+      const media = await mediaService.getMediaById(stage.mediaId!);
+      if (cancelled || !media) return;
+      objectUrl = URL.createObjectURL(media.blob);
+      setPreviewSrc(objectUrl);
+    }
+    loadPreview();
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [editingIndex]);
+
   function handleAddStage() {
     const newStage: Stage = {
       id: generateId(),
@@ -40,6 +72,8 @@ export function PlanEditorPage({ plan, onSave, onCancel }: PlanEditorPageProps) 
       restAfter: null,
     };
     setStages([...stages, newStage]);
+    // Immediately open the editor for the new stage
+    setEditingIndex(stages.length);
   }
 
   function handleUpdateStage(index: number, updates: Partial<Stage>) {
@@ -52,10 +86,20 @@ export function PlanEditorPage({ plan, onSave, onCancel }: PlanEditorPageProps) 
     setStages(stages.filter((_, i) => i !== index));
   }
 
-  async function handleUploadMedia(stageIndex: number, file: File) {
+  function handleSaveStage(updates: Partial<Stage>) {
+    if (editingIndex !== null) {
+      handleUpdateStage(editingIndex, updates);
+    }
+    setEditingIndex(null);
+  }
+
+  async function handleUploadMedia(file: File) {
+    if (editingIndex === null) return;
     try {
       const media = await mediaService.uploadMedia(file);
-      handleUpdateStage(stageIndex, {
+      if (previewSrc) URL.revokeObjectURL(previewSrc);
+      setPreviewSrc(URL.createObjectURL(media.blob));
+      handleUpdateStage(editingIndex, {
         mediaId: media.id,
         mediaType: file.type.startsWith('video') ? 'video' : 'image',
       });
@@ -63,6 +107,16 @@ export function PlanEditorPage({ plan, onSave, onCancel }: PlanEditorPageProps) 
       setError('Failed to upload media. Please try again.');
       console.error('Media upload failed:', err);
     }
+  }
+
+  async function handleReplayPreview() {
+    // Re-fetch from store and regenerate a fresh blob URL to force replay.
+    const stage = editingIndex !== null ? stages[editingIndex] : null;
+    if (!stage?.mediaId) return;
+    const media = await mediaService.getMediaById(stage.mediaId);
+    if (!media) return;
+    if (previewSrc) URL.revokeObjectURL(previewSrc);
+    setPreviewSrc(URL.createObjectURL(media.blob));
   }
 
   async function handleSave() {
@@ -79,24 +133,24 @@ export function PlanEditorPage({ plan, onSave, onCancel }: PlanEditorPageProps) 
       setSaving(true);
       setError(null);
 
+      let saved: Plan;
       if (plan) {
-        const updated = await planService.updatePlan({
+        saved = await planService.updatePlan({
           ...plan,
           name,
           type,
           stages,
           restBetweenStages,
         });
-        onSave(updated);
       } else {
-        const created = await planService.createPlan({
+        saved = await planService.createPlan({
           name,
           type,
           stages: stages.map(({ id: _id, planId: _pid, order: _order, ...stage }) => stage),
           restBetweenStages,
         });
-        onSave(created);
       }
+      onSave(saved);
     } catch (err) {
       setError('Failed to save plan. Please try again.');
       console.error('Save failed:', err);
@@ -104,7 +158,6 @@ export function PlanEditorPage({ plan, onSave, onCancel }: PlanEditorPageProps) 
       setSaving(false);
     }
   }
-
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -199,18 +252,24 @@ export function PlanEditorPage({ plan, onSave, onCancel }: PlanEditorPageProps) 
                 key={stage.id}
                 stage={stage}
                 index={index}
-                onEdit={() => {
-                  const newName = prompt('Stage name:', stage.name);
-                  if (newName) handleUpdateStage(index, { name: newName });
-                  const newDuration = prompt('Duration (seconds):', String(stage.duration ?? 30));
-                  if (newDuration) handleUpdateStage(index, { duration: Number(newDuration) });
-                }}
+                onEdit={() => setEditingIndex(index)}
                 onDelete={() => handleDeleteStage(index)}
               />
             ))}
           </div>
         </div>
       </main>
+
+      <StageEditorModal
+        open={editingIndex !== null}
+        stage={editingIndex !== null ? stages[editingIndex] : null}
+        planType={type}
+        onClose={() => setEditingIndex(null)}
+        onSave={handleSaveStage}
+        onUploadMedia={handleUploadMedia}
+        previewSrc={previewSrc}
+        onReplay={handleReplayPreview}
+      />
     </div>
   );
 }

@@ -3,6 +3,8 @@ import { useSettingsStore } from '../../stores/settings.store';
 import { MediaService } from '../../services/media.service';
 import { HistoryService } from '../../services/history.service';
 import { Slider } from '../../components/ui/Slider';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { Toast } from '../../components/ui/Toast';
 
 interface SettingsPageProps {
   onBack: () => void;
@@ -20,22 +22,31 @@ function formatSize(bytes: number): string {
 export function SettingsPage({ onBack }: SettingsPageProps) {
   const { volume, soundEnabled, voiceCountdownEnabled, setVolume, setSoundEnabled, setVoiceCountdownEnabled } = useSettingsStore();
   const [storageUsed, setStorageUsed] = useState(0);
+  const [confirmAction, setConfirmAction] = useState<'history' | 'all' | null>(null);
+  const [toast, setToast] = useState<{ message: string; tone: 'success' | 'error' } | null>(null);
 
   useState(() => {
     mediaService.getTotalStorageUsed().then(setStorageUsed);
   });
 
-  async function handleClearHistory() {
-    if (!confirm('Clear all history? This cannot be undone.')) return;
-    await historyService.clearAll();
-    alert('History cleared.');
-  }
-
-  async function handleClearAllData() {
-    if (!confirm('Clear ALL data? This cannot be undone.')) return;
-    await historyService.clearAll();
-    // TODO: Clear plans and media too
-    alert('All data cleared. Please refresh the app.');
+  async function runConfirmedAction() {
+    if (confirmAction === 'history') {
+      try {
+        await historyService.clearAll();
+        setToast({ message: 'History cleared.', tone: 'success' });
+      } catch {
+        setToast({ message: 'Failed to clear history.', tone: 'error' });
+      }
+    } else if (confirmAction === 'all') {
+      try {
+        await historyService.clearAll();
+        // TODO: Clear plans and media too
+        setToast({ message: 'All data cleared. Please refresh the app.', tone: 'success' });
+      } catch {
+        setToast({ message: 'Failed to clear data.', tone: 'error' });
+      }
+    }
+    setConfirmAction(null);
   }
 
   return (
@@ -93,14 +104,14 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
             </div>
 
             <button
-              onClick={handleClearHistory}
+              onClick={() => setConfirmAction('history')}
               className="w-full py-2 text-left text-red-600 font-medium"
             >
               Clear History
             </button>
 
             <button
-              onClick={handleClearAllData}
+              onClick={() => setConfirmAction('all')}
               className="w-full py-2 text-left text-red-600 font-medium"
             >
               Clear All Data
@@ -117,6 +128,34 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
           </div>
         </section>
       </main>
+
+      <ConfirmDialog
+        open={confirmAction === 'history'}
+        title="Clear History"
+        message="This will permanently remove all session history. This cannot be undone."
+        confirmLabel="Clear"
+        danger
+        onConfirm={runConfirmedAction}
+        onCancel={() => setConfirmAction(null)}
+      />
+
+      <ConfirmDialog
+        open={confirmAction === 'all'}
+        title="Clear All Data"
+        message="This will remove all plans, media, and history. This cannot be undone."
+        confirmLabel="Delete Everything"
+        danger
+        onConfirm={runConfirmedAction}
+        onCancel={() => setConfirmAction(null)}
+      />
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          tone={toast.tone}
+          onDismiss={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }

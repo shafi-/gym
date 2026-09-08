@@ -3,6 +3,7 @@ import type { SessionHistory } from '../../models/history.model';
 import { HistoryService } from '../../services/history.service';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 
 interface HistoryPageProps {
   onBack: () => void;
@@ -32,6 +33,8 @@ export function HistoryPage({ onBack }: HistoryPageProps) {
   const [history, setHistory] = useState<SessionHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [confirmClearAll, setConfirmClearAll] = useState(false);
 
   useEffect(() => {
     loadHistory();
@@ -51,23 +54,26 @@ export function HistoryPage({ onBack }: HistoryPageProps) {
     }
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm('Delete this session?')) return;
+  async function confirmDelete() {
+    if (!pendingDeleteId) return;
     try {
-      await historyService.deleteEntry(id);
+      await historyService.deleteEntry(pendingDeleteId);
       await loadHistory();
     } catch (err) {
       setError('Failed to delete entry.');
+    } finally {
+      setPendingDeleteId(null);
     }
   }
 
-  async function handleClearAll() {
-    if (!confirm('Clear all history? This cannot be undone.')) return;
+  async function confirmClearAll() {
     try {
       await historyService.clearAll();
       setHistory([]);
     } catch (err) {
       setError('Failed to clear history.');
+    } finally {
+      setConfirmClearAll(false);
     }
   }
 
@@ -81,7 +87,10 @@ export function HistoryPage({ onBack }: HistoryPageProps) {
         </button>
         <h1 className="font-semibold text-gray-900">History</h1>
         {history.length > 0 && (
-          <button onClick={handleClearAll} className="text-red-500 text-sm font-medium">
+          <button
+            onClick={() => setConfirmClearAll(true)}
+            className="text-red-500 text-sm font-medium"
+          >
             Clear All
           </button>
         )}
@@ -110,7 +119,7 @@ export function HistoryPage({ onBack }: HistoryPageProps) {
                     </p>
                   </div>
                   <button
-                    onClick={() => handleDelete(entry.id)}
+                    onClick={() => setPendingDeleteId(entry.id)}
                     className="text-gray-400 hover:text-red-500"
                   >
                     ✕
@@ -121,6 +130,26 @@ export function HistoryPage({ onBack }: HistoryPageProps) {
           </div>
         )}
       </main>
+
+      <ConfirmDialog
+        open={pendingDeleteId !== null}
+        title="Delete Session"
+        message="Are you sure you want to delete this session record?"
+        confirmLabel="Delete"
+        danger
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDeleteId(null)}
+      />
+
+      <ConfirmDialog
+        open={confirmClearAll}
+        title="Clear All History"
+        message="This will permanently remove all session history. This cannot be undone."
+        confirmLabel="Clear All"
+        danger
+        onConfirm={confirmClearAll}
+        onCancel={() => setConfirmClearAll(false)}
+      />
     </div>
   );
 }
