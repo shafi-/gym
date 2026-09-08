@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { Plan, WorkoutType, Stage } from '../../models/plan.model';
 import { StageRow } from '../../components/plan/StageRow';
 import { StageEditorModal } from '../../components/plan/StageEditorModal';
+import { PageLayout } from '../../components/ui/PageLayout';
 import { PlanService } from '../../services/plan.service';
 import { MediaService } from '../../services/media.service';
 
@@ -160,7 +161,7 @@ export function PlanEditorPage({ plan, onSave, onCancel }: PlanEditorPageProps) 
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <PageLayout>
       <header className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
         <button onClick={onCancel} className="text-gray-600 font-medium">
           Cancel
@@ -272,6 +273,6 @@ export function PlanEditorPage({ plan, onSave, onCancel }: PlanEditorPageProps) 
         previewSrc={previewSrc}
         onReplay={handleReplayPreview}
       />
-    </div>
+    </PageLayout>
   );
 }

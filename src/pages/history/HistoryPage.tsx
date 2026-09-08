@@ -4,6 +4,7 @@ import { HistoryService } from '../../services/history.service';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { PageLayout } from '../../components/ui/PageLayout';
 
 interface HistoryPageProps {
   onBack: () => void;
@@ -80,7 +81,7 @@ export function HistoryPage({ onBack }: HistoryPageProps) {
   if (loading) return <Spinner />;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <PageLayout>
       <header className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
         <button onClick={onBack} className="text-primary-600 font-medium">
           ← Back
@@ -150,6 +151,6 @@ export function HistoryPage({ onBack }: HistoryPageProps) {
         onConfirm={handleConfirmClearAll}
         onCancel={() => setConfirmClearAll(false)}
       />
-    </div>
+    </PageLayout>
   );
 }

@@ -1,4 +1,5 @@
 import { PlanListContainer } from '../../containers/home/PlanListContainer';
+import { PageLayout } from '../../components/ui/PageLayout';
 
 interface HomePageProps {
   onSelectPlan: (id: string) => void;
@@ -8,7 +9,7 @@ interface HomePageProps {
 
 export function HomePage({ onSelectPlan, onCreatePlan, onImport }: HomePageProps) {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <PageLayout>
       <header className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-900">Gym App</h1>
         <button
@@ -33,6 +34,6 @@ export function HomePage({ onSelectPlan, onCreatePlan, onImport }: HomePageProps
       >
         +
       </button>
-    </div>
+    </PageLayout>
   );
 }

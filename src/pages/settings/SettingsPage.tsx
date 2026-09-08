@@ -5,6 +5,7 @@ import { HistoryService } from '../../services/history.service';
 import { Slider } from '../../components/ui/Slider';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { Toast } from '../../components/ui/Toast';
+import { PageLayout } from '../../components/ui/PageLayout';
 
 interface SettingsPageProps {
   onBack: () => void;
@@ -50,7 +51,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <PageLayout>
       <header className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
         <button onClick={onBack} className="text-primary-600 font-medium">
           ← Back
@@ -156,6 +157,6 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
           onDismiss={() => setToast(null)}
         />
       )}
-    </div>
+    </PageLayout>
   );
 }

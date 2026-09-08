@@ -1,6 +1,7 @@
 import type { Plan } from '../../models/plan.model';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
+import { PageLayout } from '../../components/ui/PageLayout';
 
 interface PlanDetailPageProps {
   plan: Plan;
@@ -29,7 +30,7 @@ export function PlanDetailPage({ plan, onStartSession, onEdit, onBack }: PlanDet
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <PageLayout>
       <header className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
         <button onClick={onBack} className="text-primary-600 font-medium">
           ← Back
@@ -72,6 +73,6 @@ export function PlanDetailPage({ plan, onStartSession, onEdit, onBack }: PlanDet
           ))}
         </div>
       </main>
-    </div>
+    </PageLayout>
   );
 }
