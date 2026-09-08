@@ -21,6 +21,7 @@ export function SessionContainer({ plan, onComplete, onCancel }: SessionContaine
   const [mediaSrc, setMediaSrc] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
   const [sessionResult, setSessionResult] = useState<{ duration: number; stagesCompleted: number } | null>(null);
+  const [countdownBeeped, setCountdownBeeped] = useState<Set<number>>(new Set());
   const sessionRef = useRef<SessionService | null>(null);
   const mediaService = new MediaService();
   const { play, unlock } = useAudio();
@@ -72,14 +73,24 @@ export function SessionContainer({ plan, onComplete, onCancel }: SessionContaine
         } else if (p.state === 'rest-period') {
           play('rest-start');
         }
+        // Reset countdown beep tracking on state change
+        setCountdownBeeped(new Set());
         previousStateRef.current = p.state;
+      }
+
+      // Countdown beep during last 3 seconds of a stage
+      if (p.state === 'stage-active' && p.timeRemaining <= 3 && p.timeRemaining > 0) {
+        const beepKey = p.currentStageIndex * 1000 + p.timeRemaining;
+        if (!countdownBeeped.has(beepKey)) {
+          play('countdown-beep');
+          setCountdownBeeped((prev) => new Set(prev).add(beepKey));
+        }
       }
     });
 
     session.onComplete((_completedPlan, duration, stagesCompleted) => {
       play('session-complete');
       setSessionResult({ duration, stagesCompleted });
-      onComplete(duration, stagesCompleted);
     });
 
     // Unlock audio and start session
@@ -110,6 +121,12 @@ export function SessionContainer({ plan, onComplete, onCancel }: SessionContaine
     sessionRef.current?.skipPrevious();
   }, []);
 
+  const handleFinishSession = useCallback(() => {
+    if (sessionResult) {
+      onComplete(sessionResult.duration, sessionResult.stagesCompleted);
+    }
+  }, [sessionResult, onComplete]);
+
   if (!progress) {
     return (
       <div className="flex items-center justify-center h-screen bg-surface-dark">
@@ -125,23 +142,38 @@ export function SessionContainer({ plan, onComplete, onCancel }: SessionContaine
 
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-surface-dark">
-        <div className="text-center">
-          <span className="text-6xl mb-4 block">🎉</span>
-          <h1 className="text-2xl font-bold text-white mb-2">Session Complete!</h1>
-          <p className="text-gray-400 mb-1">{plan.name}</p>
-          <p className="text-gray-400">
-            {sessionResult.stagesCompleted} stages · {minutes}m {seconds}s
-          </p>
+        <div className="text-center max-w-sm">
+          <span className="text-7xl mb-6 block">🎉</span>
+          <h1 className="text-3xl font-bold text-white mb-3">Session Complete!</h1>
+          <p className="text-gray-300 text-lg mb-1">{plan.name}</p>
+          <div className="flex justify-center gap-6 mt-4 mb-8">
+            <div className="text-center">
+              <p className="text-2xl font-bold text-white">{sessionResult.stagesCompleted}</p>
+              <p className="text-sm text-gray-400">stages</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-white">{minutes}:{seconds.toString().padStart(2, '0')}</p>
+              <p className="text-sm text-gray-400">duration</p>
+            </div>
+          </div>
+          <button
+            onClick={handleFinishSession}
+            className="w-full py-3 bg-primary-600 text-white rounded-lg font-semibold hover:bg-primary-700 transition-colors"
+          >
+            Done
+          </button>
         </div>
       </div>
     );
   }
 
   const isRest = progress.state === 'rest-period';
+  const nextStage = isRest ? plan.stages[progress.currentStageIndex + 1] : null;
+  const isUrgent = progress.timeRemaining <= 10;
 
   return (
     <div className={`min-h-screen flex flex-col items-center justify-center p-6 ${isRest ? 'bg-rest' : 'bg-surface-dark'}`}>
-      <div className="w-full max-w-md flex flex-col items-center gap-6">
+      <div className="w-full max-w-md flex flex-col items-center gap-5">
         <ProgressBar
           current={progress.currentStageIndex + 1}
           total={progress.totalStages}
@@ -154,15 +186,22 @@ export function SessionContainer({ plan, onComplete, onCancel }: SessionContaine
         />
 
         {progress.currentStage && (
-          <h2 className="text-white text-xl font-semibold">
+          <h2 className="text-white text-xl font-semibold text-center">
             {progress.currentStage.name}
           </h2>
+        )}
+
+        {isRest && nextStage && (
+          <p className="text-blue-200 text-sm">
+            Up next: <span className="font-medium text-white">{nextStage.name}</span>
+          </p>
         )}
 
         <TimerDisplay
           timeRemaining={progress.timeRemaining}
           totalTime={progress.totalStageTime}
           isRest={isRest}
+          isUrgent={isUrgent}
         />
 
         <SessionControls

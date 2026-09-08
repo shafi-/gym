@@ -7,8 +7,8 @@ interface MediaViewerProps {
 export function MediaViewer({ src, type, alt }: MediaViewerProps) {
   if (!src) {
     return (
-      <div className="w-full h-48 bg-gray-800 rounded-xl flex items-center justify-center">
-        <span className="text-6xl opacity-30">🏋️</span>
+      <div className="w-full h-56 bg-gray-800 rounded-xl flex items-center justify-center">
+        <span className="text-7xl opacity-30">🏋️</span>
       </div>
     );
   }
@@ -21,7 +21,7 @@ export function MediaViewer({ src, type, alt }: MediaViewerProps) {
         loop
         muted
         playsInline
-        className="w-full h-48 object-contain rounded-xl"
+        className="w-full h-56 object-contain rounded-xl"
       />
     );
   }
@@ -30,7 +30,7 @@ export function MediaViewer({ src, type, alt }: MediaViewerProps) {
     <img
       src={src}
       alt={alt}
-      className="w-full h-48 object-contain rounded-xl"
+      className="w-full h-56 object-contain rounded-xl"
     />
   );
 }
