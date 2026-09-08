@@ -9,7 +9,6 @@ import { PlanService } from '../services/plan.service';
 import { HistoryService } from '../services/history.service';
 import { useState, useCallback } from 'react';
 import type { Plan } from '../models/plan.model';
-import type { SessionHistory } from '../models/history.model';
 
 const planService = new PlanService();
 const historyService = new HistoryService();
@@ -18,7 +17,6 @@ function AppRoutes() {
   const navigate = useNavigate();
   const [, setSearchParams] = useSearchParams();
   const [currentPlan, setCurrentPlan] = useState<Plan | null>(null);
-  const [sessionResult, setSessionResult] = useState<SessionHistory | null>(null);
 
   const handleSelectPlan = useCallback(async (id: string) => {
     const plan = await planService.getPlanById(id);
@@ -43,7 +41,7 @@ function AppRoutes() {
 
   const handleSessionComplete = useCallback(async (duration: number, stagesCompleted: number) => {
     if (currentPlan) {
-      const entry = await historyService.logSession({
+      await historyService.logSession({
         planId: currentPlan.id,
         planName: currentPlan.name,
         startedAt: Date.now() - duration * 1000,
@@ -52,7 +50,6 @@ function AppRoutes() {
         stagesCompleted,
         completed: true,
       });
-      setSessionResult(entry);
     }
     navigate('/');
   }, [currentPlan, historyService, navigate]);
@@ -61,9 +58,9 @@ function AppRoutes() {
     navigate('/');
   }, [navigate]);
 
-  const handleImport = useCallback(async (file: File) => {
-    // TODO: Implement JSON import
-    console.log('Import file:', file.name);
+  const handleImport = useCallback(() => {
+    // TODO: Wire up file picker + JSON import
+    console.log('Import plan');
   }, []);
 
   return (

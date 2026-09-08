@@ -30,17 +30,19 @@ export function SessionContainer({ plan, onComplete, onCancel }: SessionContaine
 
   // Load media when stage changes
   useEffect(() => {
-    if (!progress?.currentStage?.mediaId) {
+    const mediaId = progress?.currentStage?.mediaId;
+    if (!mediaId) {
       setMediaSrc(null);
       setMediaType(null);
       return;
     }
+    const id: string = mediaId;
 
     let revoked = false;
     let objectUrl: string | null = null;
 
     async function loadMedia() {
-      const media = await mediaService.getMediaById(progress.currentStage!.mediaId!);
+      const media = await mediaService.getMediaById(id);
       if (revoked || !media) return;
 
       objectUrl = URL.createObjectURL(media.blob);
@@ -74,7 +76,7 @@ export function SessionContainer({ plan, onComplete, onCancel }: SessionContaine
       }
     });
 
-    session.onComplete((completedPlan, duration, stagesCompleted) => {
+    session.onComplete((_completedPlan, duration, stagesCompleted) => {
       play('session-complete');
       setSessionResult({ duration, stagesCompleted });
       onComplete(duration, stagesCompleted);

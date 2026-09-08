@@ -1,10 +1,9 @@
 import type { Table } from 'dexie';
-import { db } from '../lib/db';
 
 export abstract class BaseRepository<T extends { id: string }> {
   protected table: Table<T, string>;
 
-  constructor(table: Dexie.Table<T, string>) {
+  constructor(table: Table<T, string>) {
     this.table = table;
   }
 

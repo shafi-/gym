@@ -1,4 +1,4 @@
-import type { Plan, CreatePlanDTO, Stage } from '../models/plan.model';
+import type { Plan, CreatePlanDTO } from '../models/plan.model';
 import { PlanRepository } from '../repositories/plan.repository';
 import { MediaRepository } from '../repositories/media.repository';
 

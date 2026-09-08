@@ -66,7 +66,7 @@ export function HistoryPage({ onBack }: HistoryPageProps) {
     }
   }
 
-  async function confirmClearAll() {
+  async function handleConfirmClearAll() {
     try {
       await historyService.clearAll();
       setHistory([]);
@@ -147,7 +147,7 @@ export function HistoryPage({ onBack }: HistoryPageProps) {
         message="This will permanently remove all session history. This cannot be undone."
         confirmLabel="Clear All"
         danger
-        onConfirm={confirmClearAll}
+        onConfirm={handleConfirmClearAll}
         onCancel={() => setConfirmClearAll(false)}
       />
     </div>

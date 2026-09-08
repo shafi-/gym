@@ -1,6 +1,7 @@
 import type { InputHTMLAttributes } from 'react';
 
-interface SliderProps extends InputHTMLAttributes<HTMLInputElement> {
+interface SliderProps
+  extends Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange'> {
   label?: string;
   min: number;
   max: number;
