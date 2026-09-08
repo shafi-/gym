@@ -14,31 +14,62 @@ interface PlanListContainerProps {
 export function PlanListContainer({ onSelectPlan, onCreatePlan }: PlanListContainerProps) {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadPlans();
   }, []);
 
   async function loadPlans() {
-    setLoading(true);
-    const data = await planService.getAllPlans();
-    setPlans(data.sort((a, b) => b.updatedAt - a.updatedAt));
-    setLoading(false);
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await planService.getAllPlans();
+      setPlans(data.sort((a, b) => b.updatedAt - a.updatedAt));
+    } catch (err) {
+      setError('Failed to load plans. Please try again.');
+      console.error('Failed to load plans:', err);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleDelete(id: string) {
-    if (confirm('Delete this plan?')) {
+    if (!confirm('Delete this plan?')) return;
+    try {
       await planService.deletePlan(id);
       await loadPlans();
+    } catch (err) {
+      setError('Failed to delete plan. Please try again.');
+      console.error('Failed to delete plan:', err);
     }
   }
 
   async function handleDuplicate(id: string) {
-    await planService.duplicatePlan(id);
-    await loadPlans();
+    try {
+      await planService.duplicatePlan(id);
+      await loadPlans();
+    } catch (err) {
+      setError('Failed to duplicate plan. Please try again.');
+      console.error('Failed to duplicate plan:', err);
+    }
   }
 
   if (loading) return <Spinner />;
+
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-500 mb-4">{error}</p>
+        <button
+          onClick={loadPlans}
+          className="px-4 py-2 bg-primary-600 text-white rounded-lg"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   if (plans.length === 0) {
     return (

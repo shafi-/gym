@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { SessionService } from '../../services/session.service';
+import { MediaService } from '../../services/media.service';
 import { TimerDisplay } from '../../components/session/TimerDisplay';
 import { ProgressBar } from '../../components/session/ProgressBar';
 import { MediaViewer } from '../../components/session/MediaViewer';
@@ -17,11 +18,43 @@ interface SessionContainerProps {
 
 export function SessionContainer({ plan, onComplete, onCancel }: SessionContainerProps) {
   const [progress, setProgress] = useState<SessionProgress | null>(null);
+  const [mediaSrc, setMediaSrc] = useState<string | null>(null);
+  const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
+  const [sessionResult, setSessionResult] = useState<{ duration: number; stagesCompleted: number } | null>(null);
   const sessionRef = useRef<SessionService | null>(null);
+  const mediaService = new MediaService();
   const { play, unlock } = useAudio();
   const previousStateRef = useRef<string>('idle');
 
   useWakeLock(true);
+
+  // Load media when stage changes
+  useEffect(() => {
+    if (!progress?.currentStage?.mediaId) {
+      setMediaSrc(null);
+      setMediaType(null);
+      return;
+    }
+
+    let revoked = false;
+    let objectUrl: string | null = null;
+
+    async function loadMedia() {
+      const media = await mediaService.getMediaById(progress.currentStage!.mediaId!);
+      if (revoked || !media) return;
+
+      objectUrl = URL.createObjectURL(media.blob);
+      setMediaSrc(objectUrl);
+      setMediaType(media.mimeType.startsWith('video') ? 'video' : 'image');
+    }
+
+    loadMedia();
+
+    return () => {
+      revoked = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [progress?.currentStage?.mediaId]);
 
   useEffect(() => {
     const session = new SessionService();
@@ -43,6 +76,7 @@ export function SessionContainer({ plan, onComplete, onCancel }: SessionContaine
 
     session.onComplete((completedPlan, duration, stagesCompleted) => {
       play('session-complete');
+      setSessionResult({ duration, stagesCompleted });
       onComplete(duration, stagesCompleted);
     });
 
@@ -82,6 +116,25 @@ export function SessionContainer({ plan, onComplete, onCancel }: SessionContaine
     );
   }
 
+  // Show completion screen
+  if (progress.state === 'completed' && sessionResult) {
+    const minutes = Math.floor(sessionResult.duration / 60);
+    const seconds = sessionResult.duration % 60;
+
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-surface-dark">
+        <div className="text-center">
+          <span className="text-6xl mb-4 block">🎉</span>
+          <h1 className="text-2xl font-bold text-white mb-2">Session Complete!</h1>
+          <p className="text-gray-400 mb-1">{plan.name}</p>
+          <p className="text-gray-400">
+            {sessionResult.stagesCompleted} stages · {minutes}m {seconds}s
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const isRest = progress.state === 'rest-period';
 
   return (
@@ -93,8 +146,8 @@ export function SessionContainer({ plan, onComplete, onCancel }: SessionContaine
         />
 
         <MediaViewer
-          src={null} // TODO: Load from media service
-          type={null}
+          src={mediaSrc}
+          type={mediaType}
           alt={progress.currentStage?.name ?? 'Exercise'}
         />
 
