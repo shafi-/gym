@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { HomePage } from '../pages/home/HomePage';
 import { SessionPage } from '../pages/session/SessionPage';
 import { PlanDetailPage } from '../pages/plan-detail/PlanDetailPage';
@@ -7,131 +8,166 @@ import { HistoryPage } from '../pages/history/HistoryPage';
 import { SettingsPage } from '../pages/settings/SettingsPage';
 import { PlanService } from '../services/plan.service';
 import { HistoryService } from '../services/history.service';
-import { useState, useCallback } from 'react';
+import { Spinner } from '../components/ui/Spinner';
 import type { Plan } from '../models/plan.model';
 
 const planService = new PlanService();
 const historyService = new HistoryService();
 
-function AppRoutes() {
+// Home
+function HomeRoute() {
   const navigate = useNavigate();
-  const [, setSearchParams] = useSearchParams();
-  const [currentPlan, setCurrentPlan] = useState<Plan | null>(null);
-
-  const handleSelectPlan = useCallback(async (id: string) => {
-    const plan = await planService.getPlanById(id);
-    if (plan) {
-      setCurrentPlan(plan);
-      navigate(`/plan/${id}`);
-    }
-  }, [navigate]);
-
-  const handleCreatePlan = useCallback(() => {
-    navigate('/plan/new');
-  }, [navigate]);
-
-  const handleStartSession = useCallback(async (planId: string) => {
-    const plan = await planService.getPlanById(planId);
-    if (plan) {
-      setCurrentPlan(plan);
-      setSearchParams({ planId });
-      navigate('/session');
-    }
-  }, [navigate, setSearchParams]);
-
-  const handleSessionComplete = useCallback(async (duration: number, stagesCompleted: number) => {
-    if (currentPlan) {
-      await historyService.logSession({
-        planId: currentPlan.id,
-        planName: currentPlan.name,
-        startedAt: Date.now() - duration * 1000,
-        completedAt: Date.now(),
-        totalDuration: duration,
-        stagesCompleted,
-        completed: true,
-      });
-    }
-    navigate('/');
-  }, [currentPlan, historyService, navigate]);
-
-  const handleSessionCancel = useCallback(() => {
-    navigate('/');
-  }, [navigate]);
-
-  const handleImport = useCallback(() => {
-    // TODO: Wire up file picker + JSON import
-    console.log('Import plan');
-  }, []);
 
   return (
-    <Routes>
-      <Route
-        path="/"
-        element={
-          <HomePage
-            onSelectPlan={handleSelectPlan}
-            onCreatePlan={handleCreatePlan}
-            onImport={handleImport}
-          />
-        }
-      />
-      <Route
-        path="/plan/new"
-        element={
-          <PlanEditorPage
-            onSave={(plan) => {
-              navigate(`/plan/${plan.id}`);
-            }}
-            onCancel={() => navigate('/')}
-          />
-        }
-      />
-      <Route
-        path="/plan/:planId"
-        element={
-          currentPlan ? (
-            <PlanDetailPage
-              plan={currentPlan}
-              onStartSession={() => handleStartSession(currentPlan.id)}
-              onEdit={() => navigate(`/plan/${currentPlan.id}/edit`)}
-              onBack={() => navigate('/')}
-            />
-          ) : (
-            <Navigate to="/" replace />
-          )
-        }
-      />
-      <Route
-        path="/session"
-        element={
-          currentPlan ? (
-            <SessionPage
-              plan={currentPlan}
-              onComplete={handleSessionComplete}
-              onCancel={handleSessionCancel}
-            />
-          ) : (
-            <Navigate to="/" replace />
-          )
-        }
-      />
-      <Route
-        path="/history"
-        element={<HistoryPage onBack={() => navigate('/')} />}
-      />
-      <Route
-        path="/settings"
-        element={<SettingsPage onBack={() => navigate('/')} />}
-      />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <HomePage
+      onSelectPlan={(id) => navigate(`/plan/${id}`)}
+      onCreatePlan={() => navigate('/plan/new')}
+      onImport={() => {
+        // TODO: Wire up file picker + JSON import
+        console.log('Import plan');
+      }}
+    />
   );
+}
+
+// New plan editor (no existing plan)
+function NewPlanRoute() {
+  const navigate = useNavigate();
+
+  return (
+    <PlanEditorPage
+      onSave={(plan) => navigate(`/plan/${plan.id}`)}
+      onCancel={() => navigate('/')}
+    />
+  );
+}
+
+// Edit existing plan, loaded by :planId
+function EditPlanRoute() {
+  const { planId } = useParams();
+  const navigate = useNavigate();
+  const [plan, setPlan] = useState<Plan | null>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!planId) return;
+    let active = true;
+    planService
+      .getPlanById(planId)
+      .then((p) => { if (active) setPlan(p ?? null); })
+      .finally(() => { if (active) setLoaded(true); });
+    return () => { active = false; };
+  }, [planId]);
+
+  if (!loaded) return <Spinner />;
+  if (!plan) return <Navigate to="/" replace />;
+
+  return (
+    <PlanEditorPage
+      plan={plan}
+      onSave={(updated) => navigate(`/plan/${updated.id}`)}
+      onCancel={() => navigate(`/plan/${plan.id}`)}
+    />
+  );
+}
+
+// Plan detail + session, loaded by :planId
+function PlanDetailRoute() {
+  const { planId } = useParams();
+  const navigate = useNavigate();
+  const [plan, setPlan] = useState<Plan | null>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!planId) return;
+    let active = true;
+    planService
+      .getPlanById(planId)
+      .then((p) => { if (active) setPlan(p ?? null); })
+      .finally(() => { if (active) setLoaded(true); });
+    return () => { active = false; };
+  }, [planId]);
+
+  if (!loaded) return <Spinner />;
+  if (!plan) return <Navigate to="/" replace />;
+
+  return (
+    <PlanDetailPage
+      plan={plan}
+      onStartSession={() => navigate(`/session/${planId}`)}
+      onEdit={() => navigate(`/plan/${planId}/edit`)}
+      onBack={() => navigate('/')}
+    />
+  );
+}
+
+// Active session, loaded by :planId
+function SessionRoute() {
+  const { planId } = useParams();
+  const navigate = useNavigate();
+  const [plan, setPlan] = useState<Plan | null>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!planId) return;
+    let active = true;
+    planService
+      .getPlanById(planId)
+      .then((p) => { if (active) setPlan(p ?? null); })
+      .finally(() => { if (active) setLoaded(true); });
+    return () => { active = false; };
+  }, [planId]);
+
+  if (!loaded) return <Spinner />;
+  if (!plan) return <Navigate to="/" replace />;
+
+  const handleComplete = async (duration: number, stagesCompleted: number) => {
+    await historyService.logSession({
+      planId: plan.id,
+      planName: plan.name,
+      startedAt: Date.now() - duration * 1000,
+      completedAt: Date.now(),
+      totalDuration: duration,
+      stagesCompleted,
+      completed: true,
+    });
+    navigate('/');
+  };
+
+  return (
+    <SessionPage
+      plan={plan}
+      onComplete={handleComplete}
+      onCancel={() => navigate(`/plan/${planId}`)}
+    />
+  );
+}
+
+// History
+function HistoryRoute() {
+  const navigate = useNavigate();
+  return <HistoryPage onBack={() => navigate('/')} />;
+}
+
+// Settings
+function SettingsRoute() {
+  const navigate = useNavigate();
+  return <SettingsPage onBack={() => navigate('/')} />;
 }
 
 export function AppRouter() {
   return (
     <BrowserRouter>
-      <AppRoutes />
+      <Routes>
+        <Route path="/" element={<HomeRoute />} />
+        <Route path="/plan/new" element={<NewPlanRoute />} />
+        <Route path="/plan/:planId" element={<PlanDetailRoute />} />
+        <Route path="/plan/:planId/edit" element={<EditPlanRoute />} />
+        <Route path="/session/:planId" element={<SessionRoute />} />
+        <Route path="/history" element={<HistoryRoute />} />
+        <Route path="/settings" element={<SettingsRoute />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </BrowserRouter>
   );
 }
