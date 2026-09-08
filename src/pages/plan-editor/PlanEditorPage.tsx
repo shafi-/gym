@@ -238,12 +238,6 @@ export function PlanEditorPage({ plan, onSave, onCancel }: PlanEditorPageProps) 
             <label className="block text-sm font-medium text-gray-700">
               Stages ({stages.length})
             </label>
-            <button
-              onClick={handleAddStage}
-              className="text-sm text-primary-600 font-medium"
-            >
-              + Add Stage
-            </button>
           </div>
 
           <div className="space-y-2">
@@ -257,6 +251,14 @@ export function PlanEditorPage({ plan, onSave, onCancel }: PlanEditorPageProps) 
               />
             ))}
           </div>
+
+          <button
+            onClick={handleAddStage}
+            className="w-full mt-3 py-3 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center gap-2 text-gray-500 font-medium hover:border-primary-400 hover:text-primary-600 transition-colors"
+          >
+            <span className="text-lg leading-none">+</span>
+            <span>Add New Stage</span>
+          </button>
         </div>
       </main>
 
