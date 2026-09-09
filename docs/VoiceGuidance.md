@@ -59,8 +59,71 @@ VoiceService.announce(progress)
         │     ├── pre-stage warning → "Next: {name} in 5 seconds"
         │     └── countdown → "3... 2... 1..."
         │
-        └── Queue announcement → SpeechSynthesis.speak()
+                └── Queue announcement → SpeechSynthesis.speak()
 ```
+
+---
+
+## Timing & Synchronization
+
+### Core Principle
+**Speech duration must fit within the announcement window.** No announcement should still be speaking when the event it announced has already happened.
+
+### Duration Estimates
+At default rate (1.0x), approximate speech durations:
+
+| Text length | Duration |
+|-------------|----------|
+| 3-5 words | ~1 second |
+| 6-8 words | ~2 seconds |
+| 10+ words | ~3+ seconds |
+
+### Announcement Timing Map
+
+```
+STAGE (30s)                    REST (15s)                    STAGE (20s)
+    │                              │                              │
+    ▼                              ▼                              ▼
+[Squats. Go!]              [Rest for 15s]          [Next: Push-ups] ← 8s before stage ends
+   t=30s                      t=15s                      t=22s
+                              │                              │
+                              ▼                              ▼
+                          [Next: Push-ups]        [3] ← t=3 into stage
+                            t=7s                   [2] ← t=2 into stage
+                              │                   [1] ← t=1 into stage
+                              ▼
+                          [Push-ups. Go!]
+                            t=15s
+```
+
+### Timing Strategy
+
+1. **Stage Start Announcement**
+   - Speak: "{Name}. Go!"
+   - Triggered: Immediately when stage begins
+   - Constraint: Must finish before user needs to hear it (within first 0.5s)
+
+2. **Rest Period Announcement**
+   - Speak: "Rest for {N} seconds"
+   - Triggered: Immediately when rest begins
+   - Constraint: Must finish before rest ends (typically 10-60s, so fine)
+
+3. **Pre-stage Warning**
+   - Speak: "Next: {Name}" (shortened to fit timing)
+   - Triggered: 8 seconds before stage ends
+   - Rationale: Allows ~2s for speech, then 6s for user to prepare
+   - Setting: `preStageWarningSeconds` (default: 5) but actual trigger is `preStageWarningSeconds + speechDuration`
+
+4. **Countdown (3-2-1)**
+   - Speak: "3", "2", "1" sequentially
+   - Triggered: When timer hits 3, 2, 1 seconds
+   - Each: ~1 second duration, aligns with 1-second intervals
+
+5. **Prevention of Overruns**
+   - If speech duration exceeds the announcement window, shorten or skip
+   - High priority announcements (stage start) always interrupt lower priority (countdown)
+
+---
 
 ---
 

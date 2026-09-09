@@ -6,9 +6,8 @@ import { ProgressBar } from '../../components/session/ProgressBar';
 import { MediaViewer } from '../../components/session/MediaViewer';
 import { SessionControls } from '../../components/session/SessionControls';
 import { useAudio } from '../../hooks/useAudio';
-import { useVoice } from '../../hooks/useVoice';
 import { useWakeLock } from '../../hooks/useWakeLock';
-import { useSettingsStore } from '../../stores/settings.store';
+import { notificationService } from '../../services/notification.service';
 import { voiceService } from '../../services/voice.service';
 import { Toast } from '../../components/ui/Toast';
 import type { SessionProgress } from '../../services/session.service';
@@ -25,13 +24,9 @@ export function SessionContainer({ plan, onComplete, onCancel }: SessionContaine
   const [mediaSrc, setMediaSrc] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
   const [sessionResult, setSessionResult] = useState<{ duration: number; stagesCompleted: number } | null>(null);
-  const [countdownBeeped, setCountdownBeeped] = useState<Set<number>>(new Set());
   const sessionRef = useRef<SessionService | null>(null);
   const mediaService = new MediaService();
-  const { play, unlock } = useAudio();
-  const { announce, reset: resetVoice } = useVoice();
-  const { voiceEnabled } = useSettingsStore();
-  const previousStateRef = useRef<string>('idle');
+  const { unlock } = useAudio();
   const [voiceToast, setVoiceToast] = useState<string | null>(null);
 
   // Debug: show toast when voice announces something
@@ -82,50 +77,24 @@ export function SessionContainer({ plan, onComplete, onCancel }: SessionContaine
 
     session.onTick((p) => {
       setProgress(p);
-
-      // Voice announcements
-      if (voiceEnabled) {
-        announce(p);
-      }
-
-      // Play audio cues on state changes
-      if (previousStateRef.current !== p.state) {
-        if (p.state === 'stage-active' && previousStateRef.current !== 'idle') {
-          play('stage-start');
-        } else if (p.state === 'rest-period') {
-          play('rest-start');
-        }
-        // Reset countdown beep tracking on state change
-        setCountdownBeeped(new Set());
-        previousStateRef.current = p.state;
-      }
-
-      // Countdown beep during last 3 seconds of a stage
-      if (p.state === 'stage-active' && p.timeRemaining <= 3 && p.timeRemaining > 0) {
-        const beepKey = p.currentStageIndex * 1000 + p.timeRemaining;
-        if (!countdownBeeped.has(beepKey)) {
-          play('countdown-beep');
-          setCountdownBeeped((prev) => new Set(prev).add(beepKey));
-        }
-      }
+      notificationService.notify(p);
     });
 
     session.onComplete((_completedPlan, duration, stagesCompleted) => {
-      play('session-complete');
+      notificationService.notifyComplete();
       setSessionResult({ duration, stagesCompleted });
-      resetVoice();
     });
 
     // Unlock audio and start session
     unlock().then(() => {
+      notificationService.reset();
+      notificationService.notifyStart();
       session.start(plan);
-      play('stage-start');
-      previousStateRef.current = 'stage-active';
     });
 
     return () => {
       session.stop();
-      resetVoice();
+      notificationService.cleanup();
     };
   }, [plan]);
 

@@ -173,33 +173,21 @@ export class VoiceService {
       utterance.lang = workingVoice.lang || 'en-US';
     }
 
-    utterance.onstart = () => {
-      console.log('[Voice] Started speaking:', announcement.text);
+        utterance.onstart = () => {
+      console.log('[Voice] Started:', announcement.text);
     };
 
     utterance.onend = () => {
-      console.log('[Voice] Finished speaking:', announcement.text);
+      console.log('[Voice] Finished:', announcement.text);
       this.processQueue();
     };
 
     utterance.onerror = (event) => {
-      console.error('[Voice] Error:', event.error, 'at', event.charIndex, announcement.text);
+      console.error('[Voice] Error:', event.error, announcement.text);
       this.processQueue();
     };
 
-    console.log('[Voice] Calling synth.speak for:', announcement.text);
-    console.log('[Voice] Utterance voice:', utterance.voice?.name || 'default');
-    console.log('[Voice] Utterance lang:', utterance.lang);
-    console.log('[Voice] Synth pending:', this.synth.pending);
-    console.log('[Voice] Synth speaking:', this.synth.speaking);
-    console.log('[Voice] Synth paused:', this.synth.paused);
-    console.log('[Voice] Available voices:', this.synth.getVoices().length);
-    console.log('[Voice] Selected voice:', workingVoice?.name || 'default');
-
-    // Some browsers need a small delay before speaking
-    requestAnimationFrame(() => {
-      this.synth!.speak(utterance);
-    });
+    this.synth.speak(utterance);
   }
 
   stop(): void {
@@ -336,16 +324,23 @@ export class VoiceService {
         this.speak('Workout complete!', 'high');
         break;
     }
-  }
+    }
 
   private handlePreStageWarning(progress: SessionProgress, warningSeconds: number): void {
     const { timeRemaining, currentStageIndex } = progress;
 
-    if (timeRemaining <= warningSeconds && timeRemaining > 0) {
-      const thresholdKey = currentStageIndex * 1000 + warningSeconds;
+    // Estimate speech duration (~0.3s per word, adjusted by rate)
+    // "Next stage in 5 seconds" = 5 words ≈ 1.5s at rate 1.0
+    // Trigger at warningSeconds + speechDuration to account for speech time
+    const estimatedSpeechDuration = 2; // seconds (conservative estimate)
+    const triggerAt = warningSeconds + estimatedSpeechDuration;
+
+    if (timeRemaining <= triggerAt && timeRemaining > estimatedSpeechDuration) {
+      const thresholdKey = currentStageIndex * 1000 + Math.floor(triggerAt);
       if (!this.warnedThresholds.has(thresholdKey)) {
         this.warnedThresholds.add(thresholdKey);
-        this.speak(`Next stage in ${timeRemaining} seconds`, 'normal');
+        // Short announcement to fit in the window
+        this.speak(`Next stage in ${timeRemaining - estimatedSpeechDuration} seconds`, 'normal');
       }
     }
   }
