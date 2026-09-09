@@ -14,12 +14,15 @@ export function HomePage({ onSelectPlan, onCreatePlan, onImport, onHistory, onSe
     <PageLayout>
       <header className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-900">Gym App</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <button
             onClick={onHistory}
-            className="text-sm text-gray-600 font-medium px-2 py-1 hover:text-primary-600 transition-colors"
+            className="w-9 h-9 flex items-center justify-center text-gray-600 hover:text-primary-600 hover:bg-gray-100 rounded-lg transition-colors"
+            aria-label="History"
           >
-            History
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
           </button>
           <button
             onClick={onSettings}
