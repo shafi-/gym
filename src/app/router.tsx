@@ -26,6 +26,8 @@ function HomeRoute() {
         // TODO: Wire up file picker + JSON import
         console.log('Import plan');
       }}
+      onHistory={() => navigate('/history')}
+      onSettings={() => navigate('/settings')}
     />
   );
 }
