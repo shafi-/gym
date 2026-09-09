@@ -5,9 +5,11 @@ import { TimerDisplay } from '../../components/session/TimerDisplay';
 import { ProgressBar } from '../../components/session/ProgressBar';
 import { MediaViewer } from '../../components/session/MediaViewer';
 import { SessionControls } from '../../components/session/SessionControls';
+import { SessionGate } from '../../components/session/SessionGate';
 import { useAudio } from '../../hooks/useAudio';
 import { useWakeLock } from '../../hooks/useWakeLock';
 import { notificationService } from '../../services/notification.service';
+import { audioService } from '../../services/audio.service';
 import { voiceService } from '../../services/voice.service';
 import { Toast } from '../../components/ui/Toast';
 import type { SessionProgress } from '../../services/session.service';
@@ -28,6 +30,10 @@ export function SessionContainer({ plan, onComplete, onCancel }: SessionContaine
   const mediaService = new MediaService();
   const { unlock } = useAudio();
   const [voiceToast, setVoiceToast] = useState<string | null>(null);
+  // Gate is skipped only when audio was already unlocked inside a real user
+  // gesture this document load (warm navigation). Otherwise it stays up until
+  // the user taps Start — no heuristic guessing, verified state only.
+  const [isGated, setIsGated] = useState(!audioService.isUnlocked());
 
   // Refs to prevent double-initialization in React StrictMode
   const hasInitializedRef = useRef(false);
@@ -95,15 +101,17 @@ export function SessionContainer({ plan, onComplete, onCancel }: SessionContaine
       prevPlanIdRef.current = plan.id;
     }
 
-    // Start the session immediately — audio unlock is a best-effort parallel
-    // enhancement (autoplay policy may keep the context suspended without a
-    // user gesture); it must never gate the timer. Guarded against double-mount.
+    // Session start is deferred to the SessionGate tap (handleReady) — it is
+    // the user gesture browsers require for audio and speech synthesis. The
+    // only exception: warm navigation already unlocked audio in its own
+    // gesture, so the gate auto-skipped and the session starts here.
+    if (!audioService.isUnlocked()) return;
+
     if (!hasInitializedRef.current) {
       hasInitializedRef.current = true;
       notificationService.notifyStart();
       session.start(plan);
     }
-    void unlock();
 
     return () => {
       hasInitializedRef.current = false;
@@ -111,6 +119,18 @@ export function SessionContainer({ plan, onComplete, onCancel }: SessionContaine
       notificationService.cleanup();
     };
   }, [plan]);
+
+  /** Runs synchronously inside the gate's onClick — that gesture is what
+   * unlocks audio. Must not await before session.start(). */
+  const handleReady = useCallback(() => {
+    if (hasInitializedRef.current) return;
+    hasInitializedRef.current = true;
+    setIsGated(false);
+    void unlock();
+    voiceService.prime();
+    notificationService.notifyStart();
+    sessionRef.current?.start(plan);
+  }, [plan, unlock]);
 
   const handlePause = useCallback(() => {
     sessionRef.current?.pause();
@@ -133,6 +153,16 @@ export function SessionContainer({ plan, onComplete, onCancel }: SessionContaine
       onComplete(sessionResult.duration, sessionResult.stagesCompleted);
     }
   }, [sessionResult, onComplete]);
+
+  if (isGated) {
+    return (
+      <SessionGate
+        planName={plan.name}
+        stageCount={plan.stages.length}
+        onReady={handleReady}
+      />
+    );
+  }
 
   if (!progress) {
     return (

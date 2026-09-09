@@ -2,6 +2,8 @@ import type { Plan } from '../../models/plan.model';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { PageLayout } from '../../components/ui/PageLayout';
+import { audioService } from '../../services/audio.service';
+import { voiceService } from '../../services/voice.service';
 
 interface PlanDetailPageProps {
   plan: Plan;
@@ -50,7 +52,19 @@ export function PlanDetailPage({ plan, onStartSession, onEdit, onBack }: PlanDet
         </div>
 
         <div className="mb-6">
-          <Button onClick={onStartSession} size="lg" className="w-full">
+          <Button
+            onClick={() => {
+              // Inside this gesture: unlock audio (and prime speech synthesis)
+              // so the session route mounts with audio ready and skips its
+              // Ready gate. If the unlock fails to land, the gate still shows
+              // there — verified-state fallback, never a silent session.
+              void audioService.unlock();
+              voiceService.prime();
+              onStartSession();
+            }}
+            size="lg"
+            className="w-full"
+          >
             Start Session
           </Button>
         </div>

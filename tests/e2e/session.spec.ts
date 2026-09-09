@@ -37,12 +37,19 @@ async function seedPlan(page: Page, plan: Plan): Promise<void> {
   }, plan);
 }
 
-async function openSession(page: Page): Promise<void> {
+/** Seed + open the home page once so Dexie creates the schema. */
+async function seedFreshPlan(page: Page, plan: Plan = TEST_PLAN): Promise<void> {
   await page.goto('/');
-  // Home page rendered => Dexie.open() completed and the schema exists.
   await expect(page.getByRole('heading', { name: 'My Plans' })).toBeVisible();
-  await seedPlan(page, TEST_PLAN);
+  await seedPlan(page, plan);
+}
+
+async function openSession(page: Page): Promise<void> {
+  await seedFreshPlan(page);
   await page.goto(`/session/${TEST_PLAN.id}`);
+  // Session route mounts behind a "Ready?" gate whose Start tap doubles as
+  // the user gesture browsers require before allowing audio.
+  await page.getByRole('button', { name: 'Start' }).click();
   // Session screen shows the stage title + timer.
   await expect(getStageHeading(page, 'Jumping Jacks')).toBeVisible();
 }
@@ -121,5 +128,30 @@ test.describe('Session infrastructure', () => {
     await page.getByRole('button', { name: 'Cancel Session' }).click();
     // Cancel navigates back to the plan detail page.
     await expect(page.getByText('E2E Test Workout')).toBeVisible();
+  });
+
+  test('warm navigation from plan detail skips the Ready gate', async ({ page }) => {
+    await seedFreshPlan(page);
+
+    // Warm path: land on plan detail, start from its Start Session button.
+    await page.goto(`/plan/${TEST_PLAN.id}`);
+    await expect(page.getByRole('button', { name: 'Start Session' })).toBeVisible();
+    await page.getByRole('button', { name: 'Start Session' }).click();
+
+    // Gate must NOT appear; the first stage should be live already.
+    await expect(page.getByRole('button', { name: 'Start', exact: true })).toHaveCount(0);
+    await expect(getStageHeading(page, 'Jumping Jacks')).toBeVisible();
+    await expect(page.getByRole('button', { name: '⏸' })).toBeVisible();
+  });
+
+  test('cold entry to session route shows the Ready gate', async ({ page }) => {
+    await seedFreshPlan(page);
+
+    // Gesture-less entry: no navigation through plan detail first.
+    await page.goto(`/session/${TEST_PLAN.id}`);
+
+    // Gate is up, session not started yet — timer must not be running.
+    await expect(page.getByRole('heading', { name: 'Ready?' })).toBeVisible();
+    await expect(getStageHeading(page, 'Jumping Jacks')).toHaveCount(0);
   });
 });
