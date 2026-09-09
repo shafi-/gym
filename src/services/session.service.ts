@@ -57,6 +57,7 @@ export class SessionService {
     const stage = this.plan.stages[this.currentStageIndex];
     if (!stage) { this.completeSession(); return; }
 
+    this.state = 'stage-active';
     this.totalStageTime = stage.duration ?? 0;
     this.timeRemaining = this.totalStageTime;
     this.startTime = Date.now();
@@ -138,7 +139,10 @@ export class SessionService {
     this.timeRemaining = Math.max(0, this.totalStageTime - elapsed);
     this.notifyTick();
 
-    if (this.timeRemaining <= 0) { this.onStageComplete(); return; }
+    if (this.timeRemaining <= 0) {
+      this.onStageComplete();
+      return;
+    }
 
     if (document.visibilityState === 'visible') {
       this.animationFrameId = requestAnimationFrame(() => this.tick());
