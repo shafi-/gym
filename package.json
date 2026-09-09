@@ -6,6 +6,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "preinstall": "pnpm approve-builds --yes",
+    "prebuild": "pnpm approve-builds --yes",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "vitest",
