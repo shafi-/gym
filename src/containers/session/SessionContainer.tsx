@@ -26,7 +26,14 @@ export function SessionContainer({ plan, onComplete, onCancel }: SessionContaine
   const [mediaSrc, setMediaSrc] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<'image' | 'video' | null>(null);
   const [sessionResult, setSessionResult] = useState<{ duration: number; stagesCompleted: number } | null>(null);
+  // One SessionService per component instance, created lazily. Creating it
+  // inside the effect made StrictMode's simulate-unmount/remount destroy and
+  // recreate a running session — the churn behind the double first-stage
+  // announcement.
   const sessionRef = useRef<SessionService | null>(null);
+  if (sessionRef.current === null) {
+    sessionRef.current = new SessionService();
+  }
   const mediaService = new MediaService();
   const { unlock } = useAudio();
   const [voiceToast, setVoiceToast] = useState<string | null>(null);
@@ -82,8 +89,7 @@ export function SessionContainer({ plan, onComplete, onCancel }: SessionContaine
   }, [progress?.currentStage?.mediaId]);
 
   useEffect(() => {
-    const session = new SessionService();
-    sessionRef.current = session;
+    const session = sessionRef.current!;
 
     session.onTick((p) => {
       setProgress(p);
@@ -95,7 +101,9 @@ export function SessionContainer({ plan, onComplete, onCancel }: SessionContaine
       setSessionResult({ duration, stagesCompleted });
     });
 
-    // Reset notification state when plan changes (not on re-mount)
+    // Reset notification state when plan changes (not on re-mount). Refs
+    // survive StrictMode's simulated remount, so the second effect pass does
+    // NOT reset here — the announce tracker's baseline survives the restart.
     if (prevPlanIdRef.current !== plan.id) {
       notificationService.reset();
       prevPlanIdRef.current = plan.id;
@@ -107,14 +115,17 @@ export function SessionContainer({ plan, onComplete, onCancel }: SessionContaine
     // gesture, so the gate auto-skipped and the session starts here.
     if (!audioService.isUnlocked()) return;
 
+    // notifyStart is guarded once per component instance; session.start() on
+    // an already-stopped instance is a plain restart and stays silent for the
+    // first stage, because the tracker ignores teardown ticks (stop()'s
+    // 'idle' notification) and keeps its baseline.
     if (!hasInitializedRef.current) {
       hasInitializedRef.current = true;
       notificationService.notifyStart();
-      session.start(plan);
     }
+    session.start(plan);
 
     return () => {
-      hasInitializedRef.current = false;
       session.stop();
       notificationService.cleanup();
     };

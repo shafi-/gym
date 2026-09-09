@@ -77,6 +77,20 @@ describe('AnnounceTracker — stage announcements', () => {
     expect(spokenTexts()).toContain('Take rest 10 seconds');
     expect(speak).toHaveBeenCalledWith('Take rest 10 seconds', 'normal');
   });
+
+  it('ignores teardown ticks: an idle tick does not reset the baseline, so a restart does not re-announce (StrictMode regression)', () => {
+    const t = newTracker();
+    // First start announces the first stage.
+    t.announce(progress({ state: 'stage-active', timeRemaining: 10 }));
+    expect(spokenTexts().filter((text) => text.includes('Go!')).length).toBe(1);
+
+    // StrictMode simulate-unmount: stop() emits an 'idle' tick (its observer
+    // contract), then the remount pass restarts the session.
+    t.announce(progress({ state: 'idle', currentStage: null }));
+    t.announce(progress({ state: 'stage-active', timeRemaining: 10 }));
+
+    expect(spokenTexts().filter((text) => text.includes('Go!')).length).toBe(1);
+  });
 });
 
 describe('AnnounceTracker — pre-stage warning', () => {

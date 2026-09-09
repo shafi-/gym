@@ -29,6 +29,14 @@ export class AnnounceTracker {
     const opts: AnnounceOptions = { ...this.defaultOptions, ...options };
     const { state, currentStageIndex, isPaused } = progress;
 
+    // Teardown/terminal states are not announcement events (see
+    // handleStateChange: only stage-active and rest-period are spoken).
+    // Importantly they must not reset the baseline either: stop() emits an
+    // 'idle' tick as part of its observer contract, and a subsequent restart
+    // (e.g. StrictMode's simulate-unmount/remount) would otherwise look like
+    // a brand-new stage-active event and re-announce the first stage.
+    if (state === 'idle' || state === 'completed') return;
+
     if (state !== this.lastState || currentStageIndex !== this.lastStageIndex) {
       this.handleStateChange(progress, opts);
       this.lastState = state;
