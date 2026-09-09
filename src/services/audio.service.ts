@@ -1,5 +1,8 @@
 type SoundId = 'stage-start' | 'stage-end' | 'rest-start' | 'rest-end' | 'session-complete' | 'countdown-beep';
 
+/** Autoplay policy can leave resume() pending forever; bound the unlock wait. */
+const UNLOCK_TIMEOUT_MS = 500;
+
 export class AudioService {
   private audioContext: AudioContext | null = null;
   private sounds: Map<SoundId, HTMLAudioElement> = new Map();
@@ -28,24 +31,59 @@ export class AudioService {
     }
   }
 
+  /**
+   * Best-effort unlock of Web Audio playback. Under Chrome's autoplay policy
+   * `resume()` made without a user gesture stays pending forever, so the race
+   * below bounds the wait; call again after a user gesture to finish unlocking.
+   */
   async unlock(): Promise<void> {
-    if (this.unlocked) return;
+    if (this.audioContext?.state === 'running') return;
 
-    // Create AudioContext on user gesture
-    this.audioContext = new AudioContext();
+    try {
+      this.audioContext ??= new AudioContext();
 
-    if (this.audioContext.state === 'suspended') {
-      await this.audioContext.resume();
+      await Promise.race([
+        this.audioContext.resume(),
+        new Promise<void>((resolve) => setTimeout(resolve, UNLOCK_TIMEOUT_MS)),
+      ]);
+
+      if (this.audioContext.state === 'running') {
+        const buffer = this.audioContext.createBuffer(1, 1, 22050);
+        const source = this.audioContext.createBufferSource();
+        source.buffer = buffer;
+        source.connect(this.audioContext.destination);
+        source.start(0);
+        this.unlocked = true;
+      }
+    } catch {
+      // AudioContext unavailable; playback silently degrades to no sound.
+    }
+  }
+
+  /**
+   * Generate a short beep using Web Audio API.
+   * Used for timer ticks and countdown beeps.
+   */
+  playBeep(): void {
+    if (!this.audioContext) {
+      console.warn('AudioService: AudioContext not initialized');
+      return;
     }
 
-    // Play silent buffer to fully unlock playback
-    const buffer = this.audioContext.createBuffer(1, 1, 22050);
-    const source = this.audioContext.createBufferSource();
-    source.buffer = buffer;
-    source.connect(this.audioContext.destination);
-    source.start(0);
+    const now = this.audioContext.currentTime;
+    const oscillator = this.audioContext.createOscillator();
+    const gainNode = this.audioContext.createGain();
 
-    this.unlocked = true;
+    oscillator.type = 'sine';
+    oscillator.frequency.value = 800;
+    gainNode.gain.setValueAtTime(this.volume * 0.3, now);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+
+    oscillator.connect(gainNode);
+    gainNode.connect(this.audioContext.destination);
+
+    oscillator.start(now);
+    oscillator.stop(now + 0.08);
   }
 
   play(id: SoundId): void {
@@ -55,7 +93,7 @@ export class AudioService {
     sound.volume = this.volume;
     sound.currentTime = 0;
     sound.play().catch(() => {
-      // Audio playback failed (e.g., not yet unlocked)
+      // Audio playback failed
     });
   }
 
@@ -72,5 +110,4 @@ export class AudioService {
   }
 }
 
-// Singleton instance
 export const audioService = new AudioService();

@@ -1,44 +1,36 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect } from 'react';
 import { voiceService } from '../services/voice.service';
 import { useSettingsStore } from '../stores/settings.store';
-import type { SessionProgress } from '../services/session.service';
 
+/**
+ * useVoice — React hook for VoiceService lifecycle management.
+ *
+ * Responsibility: Toggle voice service enable/disable based on settings.
+ * Does NOT handle announcement logic — that's AnnounceTracker's job.
+ */
 export function useVoice() {
-  const { voiceEnabled } = useSettingsStore();
-  const previousStateRef = useRef<string>('idle');
-  const previousStageRef = useRef<number>(-1);
+  const voiceEnabled = useSettingsStore((s) => s.voiceEnabled);
 
   useEffect(() => {
     voiceService.setEnabled(voiceEnabled);
   }, [voiceEnabled]);
 
-  const announce = useCallback(async (progress: SessionProgress) => {
-    if (!voiceEnabled) return;
-
-    await voiceService.ensureReady();
-    voiceService.announce(progress, {
-      announceStageName: true,
-      announceStartStop: true,
-      announceRest: true,
-      announceCountdown: true,
-      preStageWarningSeconds: 5,
-    });
-  }, [voiceEnabled]);
-
   const reset = useCallback(() => {
     voiceService.reset();
-    previousStateRef.current = 'idle';
-    previousStageRef.current = -1;
   }, []);
 
   const stop = useCallback(() => {
     voiceService.stop();
   }, []);
 
+  const prime = useCallback(() => {
+    voiceService.prime();
+  }, []);
+
   return {
-    announce,
     reset,
     stop,
+    prime,
     isSupported: voiceService.isSupported(),
     isSpeaking: () => voiceService.isSpeaking(),
   };

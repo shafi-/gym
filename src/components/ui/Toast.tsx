@@ -10,10 +10,15 @@ interface ToastProps {
 }
 
 export function Toast({ message, tone = 'info', onDismiss, duration = 3000 }: ToastProps) {
+  // Restart the dismiss timer only when the message changes. Parent screens
+  // (e.g. the live session) re-render many times per second; a naive
+  // [duration, onDismiss] dep list would reset the timer every render and the
+  // toast would never dismiss.
   useEffect(() => {
     const timer = setTimeout(onDismiss, duration);
     return () => clearTimeout(timer);
-  }, [duration, onDismiss]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [message, duration]);
 
   const tones: Record<ToastTone, string> = {
     success: 'bg-emerald-600',

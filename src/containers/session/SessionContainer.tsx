@@ -29,6 +29,10 @@ export function SessionContainer({ plan, onComplete, onCancel }: SessionContaine
   const { unlock } = useAudio();
   const [voiceToast, setVoiceToast] = useState<string | null>(null);
 
+  // Refs to prevent double-initialization in React StrictMode
+  const hasInitializedRef = useRef(false);
+  const prevPlanIdRef = useRef<string | null>(null);
+
   // Debug: show toast when voice announces something
   useEffect(() => {
     voiceService.setOnAnnounceCallback((text) => {
@@ -85,14 +89,24 @@ export function SessionContainer({ plan, onComplete, onCancel }: SessionContaine
       setSessionResult({ duration, stagesCompleted });
     });
 
-    // Unlock audio and start session
-    unlock().then(() => {
+    // Reset notification state when plan changes (not on re-mount)
+    if (prevPlanIdRef.current !== plan.id) {
       notificationService.reset();
+      prevPlanIdRef.current = plan.id;
+    }
+
+    // Start the session immediately — audio unlock is a best-effort parallel
+    // enhancement (autoplay policy may keep the context suspended without a
+    // user gesture); it must never gate the timer. Guarded against double-mount.
+    if (!hasInitializedRef.current) {
+      hasInitializedRef.current = true;
       notificationService.notifyStart();
       session.start(plan);
-    });
+    }
+    void unlock();
 
     return () => {
+      hasInitializedRef.current = false;
       session.stop();
       notificationService.cleanup();
     };

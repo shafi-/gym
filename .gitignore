@@ -43,3 +43,7 @@ pnpm-debug.log*
 
 # Temp
 /tmp
+
+# Playwright
+test-results/
+playwright-report/

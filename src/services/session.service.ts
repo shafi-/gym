@@ -7,6 +7,7 @@ export interface SessionProgress {
   currentStageIndex: number;
   totalStages: number;
   currentStage: Stage | null;
+  nextStage: Stage | null;
   timeRemaining: number;
   totalStageTime: number;
   isPaused: boolean;
@@ -56,12 +57,10 @@ export class SessionService {
     const stage = this.plan.stages[this.currentStageIndex];
     if (!stage) { this.completeSession(); return; }
 
-    this.state = 'stage-active';
     this.totalStageTime = stage.duration ?? 0;
     this.timeRemaining = this.totalStageTime;
     this.startTime = Date.now();
     this.isPaused = false;
-    this.notifyStateChange();
     this.tick();
   }
 
@@ -133,7 +132,8 @@ export class SessionService {
   }
 
   private tick(): void {
-    if (this.isPaused || this.state === 'idle' || this.state === 'completed') return;
+    // Guard: session may have been stopped while this tick was pending
+    if (!this.plan || this.isPaused || this.state === 'idle' || this.state === 'completed') return;
     const elapsed = (Date.now() - this.startTime) / 1000;
     this.timeRemaining = Math.max(0, this.totalStageTime - elapsed);
     this.notifyTick();
@@ -180,6 +180,7 @@ export class SessionService {
       currentStageIndex: this.currentStageIndex,
       totalStages: this.plan?.stages.length ?? 0,
       currentStage: this.plan?.stages[this.currentStageIndex] ?? null,
+      nextStage: this.plan?.stages[this.currentStageIndex + 1] ?? null,
       timeRemaining: Math.ceil(this.timeRemaining),
       totalStageTime: this.totalStageTime,
       isPaused: this.isPaused,

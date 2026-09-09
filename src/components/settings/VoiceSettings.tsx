@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { voiceService } from '../../services/voice.service';
+import { audioService } from '../../services/audio.service';
 import { useSettingsStore } from '../../stores/settings.store';
 
 export function VoiceSettings() {
@@ -53,6 +54,12 @@ export function VoiceSettings() {
     await voiceService.speak(previewText, 'high');
   };
 
+  const handleBeepPreview = () => {
+    audioService.unlock().then(() => {
+      audioService.playBeep();
+    });
+  };
+
   const handleStop = () => {
     voiceService.stop();
   };
@@ -92,13 +99,19 @@ export function VoiceSettings() {
           <>
             {/* Preview / Test Button */}
             <div className="bg-purple-50 rounded-lg p-3">
-              <p className="text-sm text-purple-700 mb-2 font-medium">Preview Voice</p>
-              <div className="flex gap-2">
+              <p className="text-sm text-purple-700 mb-2 font-medium">Preview & Test</p>
+              <div className="flex flex-wrap gap-2">
                 <button
                   onClick={handlePreview}
-                  className="flex-1 py-2 px-4 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 min-w-[120px] py-2 px-4 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
                 >
-                  <span>▶</span> Play Sample
+                  <span>▶</span> Voice Sample
+                </button>
+                <button
+                  onClick={handleBeepPreview}
+                  className="flex-1 min-w-[120px] py-2 px-4 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
+                >
+                  <span>🔔</span> Beep Test
                 </button>
                 <button
                   onClick={handleStop}
@@ -108,7 +121,7 @@ export function VoiceSettings() {
                 </button>
               </div>
               <p className="text-xs text-purple-500 mt-2">
-                Sample: "{previewText}"
+                Voice: "{previewText}" | Beep: timer tick sound
               </p>
             </div>
 
