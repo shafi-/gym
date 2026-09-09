@@ -124,7 +124,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
         <section>
           <h2 className="text-lg font-semibold text-gray-700 mb-3">About</h2>
           <div className="bg-white rounded-xl p-4">
-            <p className="text-gray-600">Gym App v1.0.0</p>
+            <p className="text-gray-600">Pulse v1.0.0</p>
             <p className="text-sm text-gray-400 mt-1">Offline-first exercise plan app</p>
           </div>
         </section>

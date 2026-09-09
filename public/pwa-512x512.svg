@@ -6,8 +6,5 @@
     </linearGradient>
   </defs>
   <rect width="512" height="512" rx="100" fill="url(#bg)"/>
-  <g transform="translate(256, 256)">
-    <circle cx="0" cy="0" r="120" fill="none" stroke="white" stroke-width="16" opacity="0.3"/>
-    <path d="M-60,-35 L-60,35 M-60,0 L-25,0 M-25,-35 L-25,35 M25,-35 L25,35 M25,0 L60,0 M60,-35 L60,35" stroke="white" stroke-width="14" stroke-linecap="round" fill="none"/>
-  </g>
+  <text x="256" y="350" font-size="280" font-weight="bold" font-family="system-ui, -apple-system, sans-serif" text-anchor="middle" fill="white">P</text>
 </svg>

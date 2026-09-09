@@ -9,8 +9,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
       manifest: {
-        name: 'Gym App',
-        short_name: 'Gym',
+        name: 'Pulse',
+        short_name: 'Pulse',
         description: 'Offline-first exercise plan app',
         theme_color: '#4F46E5',
         background_color: '#1A1A2E',

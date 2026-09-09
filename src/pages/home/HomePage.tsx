@@ -13,7 +13,7 @@ export function HomePage({ onSelectPlan, onCreatePlan, onImport, onHistory, onSe
   return (
     <PageLayout>
       <header className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
-        <h1 className="text-xl font-bold text-gray-900">Gym App</h1>
+        <h1 className="text-xl font-bold text-gray-900">Pulse</h1>
         <div className="flex items-center gap-1">
           <button
             onClick={onHistory}

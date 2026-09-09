@@ -1,4 +1,4 @@
-# Gym App
+# Pulse
 
 A **mobile-friendly, offline-first Progressive Web App (PWA)** that lets you create structured exercise plans and follow them with guided demonstrations, automatic timers, and audio cues. Supports multiple workout types: HIIT, strength, and yoga.
 
