@@ -12,12 +12,12 @@ export interface HomePageProps {
 export function HomePage({ onSelectPlan, onCreatePlan, onImport, onHistory, onSettings }: HomePageProps) {
   return (
     <PageLayout>
-      <header className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
-        <h1 className="text-xl font-bold text-gray-900">Pulse</h1>
+      <header className="sticky top-0 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 px-4 py-4 flex items-center justify-between shadow-lg">
+        <h1 className="text-xl font-bold text-white">Pulse</h1>
         <div className="flex items-center gap-1">
           <button
             onClick={onHistory}
-            className="w-9 h-9 flex items-center justify-center text-gray-600 hover:text-primary-600 hover:bg-gray-100 rounded-lg transition-colors"
+            className="w-9 h-9 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-colors"
             aria-label="History"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -26,7 +26,7 @@ export function HomePage({ onSelectPlan, onCreatePlan, onImport, onHistory, onSe
           </button>
           <button
             onClick={onSettings}
-            className="w-9 h-9 flex items-center justify-center text-gray-600 hover:text-primary-600 hover:bg-gray-100 rounded-lg transition-colors"
+            className="w-9 h-9 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-colors"
             aria-label="Settings"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -36,7 +36,7 @@ export function HomePage({ onSelectPlan, onCreatePlan, onImport, onHistory, onSe
           </button>
           <button
             onClick={onImport}
-            className="text-sm text-primary-600 font-medium px-2 py-1"
+            className="text-sm text-white font-medium px-3 py-1.5 bg-white/20 rounded-lg hover:bg-white/30 transition-colors"
           >
             Import
           </button>
@@ -53,7 +53,7 @@ export function HomePage({ onSelectPlan, onCreatePlan, onImport, onHistory, onSe
 
       <button
         onClick={onCreatePlan}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-primary-600 text-white rounded-full shadow-lg flex items-center justify-center text-2xl hover:bg-primary-700 transition-colors"
+        className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-full shadow-lg shadow-indigo-300 flex items-center justify-center text-2xl hover:from-indigo-700 hover:to-purple-700 transition-all hover:scale-105"
       >
         +
       </button>

@@ -183,17 +183,17 @@ export function PlanEditorPage({ plan, onSave, onCancel }: PlanEditorPageProps) 
 
   return (
     <PageLayout>
-      <header className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
-        <button onClick={onCancel} className="text-gray-600 font-medium">
+      <header className="sticky top-0 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 px-4 py-3 flex items-center justify-between shadow-lg">
+        <button onClick={onCancel} className="text-white/80 font-medium hover:text-white">
           Cancel
         </button>
-        <h1 className="font-semibold text-gray-900">
+        <h1 className="font-semibold text-white">
           {plan ? 'Edit Plan' : 'New Plan'}
         </h1>
         <button
           onClick={handleSave}
           disabled={saving}
-          className="text-primary-600 font-medium disabled:opacity-50"
+          className="text-white font-medium bg-white/20 px-3 py-1 rounded-lg hover:bg-white/30 disabled:opacity-50 transition-colors"
         >
           {saving ? 'Saving...' : 'Save'}
         </button>
@@ -228,13 +228,17 @@ export function PlanEditorPage({ plan, onSave, onCancel }: PlanEditorPageProps) 
               <button
                 key={t}
                 onClick={() => setType(t)}
-                className={`flex-1 py-2 px-4 rounded-lg font-medium capitalize transition-colors ${
+                className={`flex-1 py-2.5 px-4 rounded-xl font-medium capitalize transition-all ${
                   type === t
-                    ? 'bg-primary-600 text-white'
+                    ? t === 'hiit'
+                      ? 'bg-orange-500 text-white shadow-lg shadow-orange-200'
+                      : t === 'strength'
+                      ? 'bg-blue-500 text-white shadow-lg shadow-blue-200'
+                      : 'bg-emerald-500 text-white shadow-lg shadow-emerald-200'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                {t}
+                {t === 'hiit' ? '🏃' : t === 'strength' ? '💪' : '🧘'} {t}
               </button>
             ))}
           </div>

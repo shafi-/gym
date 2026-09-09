@@ -16,31 +16,36 @@ function formatDuration(seconds: number): string {
   return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
 }
 
+const typeConfig = {
+  hiit: { emoji: '🏃', color: 'bg-orange-500', lightColor: 'bg-orange-50 text-orange-700 border-orange-200' },
+  strength: { emoji: '💪', color: 'bg-blue-500', lightColor: 'bg-blue-50 text-blue-700 border-blue-200' },
+  yoga: { emoji: '🧘', color: 'bg-emerald-500', lightColor: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+};
+
 export function PlanCard({ plan, onSelect, onDelete, onDuplicate }: PlanCardProps) {
   const totalDuration = plan.stages.reduce(
     (sum, stage) => sum + (stage.duration ?? 0),
     0
   );
 
-  const typeEmoji = {
-    hiit: '🏃',
-    strength: '💪',
-    yoga: '🧘',
-  };
+  const config = typeConfig[plan.type];
 
   return (
-    <Card className="mb-3">
-      <div className="flex items-start justify-between">
-        <div className="flex-1 cursor-pointer" onClick={onSelect}>
+    <Card className="mb-3 overflow-hidden">
+      <div className={`flex items-start justify-between border-l-4 ${config.color.replace('bg-', 'border-')}`}>
+        <div className="flex-1 cursor-pointer p-1" onClick={onSelect}>
           <div className="flex items-center gap-2">
-            <span className="text-xl">{typeEmoji[plan.type]}</span>
+            <span className="text-xl">{config.emoji}</span>
             <h3 className="font-semibold text-gray-900">{plan.name}</h3>
+            <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${config.lightColor}`}>
+              {plan.type}
+            </span>
           </div>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-gray-500 mt-1 ml-8">
             {plan.stages.length} stages · {formatDuration(totalDuration)}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 pt-1">
           <Button variant="ghost" size="sm" onClick={onDuplicate}>
             Copy
           </Button>

@@ -78,10 +78,14 @@ export function PlanListContainer({ onSelectPlan, onCreatePlan }: PlanListContai
   if (plans.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500 mb-4">No plans yet. Create your first workout plan!</p>
+        <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center">
+          <span className="text-4xl">🏋️</span>
+        </div>
+        <h3 className="text-lg font-semibold text-gray-800 mb-2">No plans yet</h3>
+        <p className="text-gray-500 mb-6">Create your first workout plan and start training!</p>
         <button
           onClick={onCreatePlan}
-          className="px-6 py-3 bg-primary-600 text-white rounded-lg font-semibold hover:bg-primary-700 transition-colors"
+          className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg shadow-indigo-200"
         >
           + Create Plan
         </button>

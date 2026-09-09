@@ -6,7 +6,11 @@ import { ProgressBar } from '../../components/session/ProgressBar';
 import { MediaViewer } from '../../components/session/MediaViewer';
 import { SessionControls } from '../../components/session/SessionControls';
 import { useAudio } from '../../hooks/useAudio';
+import { useVoice } from '../../hooks/useVoice';
 import { useWakeLock } from '../../hooks/useWakeLock';
+import { useSettingsStore } from '../../stores/settings.store';
+import { voiceService } from '../../services/voice.service';
+import { Toast } from '../../components/ui/Toast';
 import type { SessionProgress } from '../../services/session.service';
 import type { Plan } from '../../models/plan.model';
 
@@ -25,7 +29,20 @@ export function SessionContainer({ plan, onComplete, onCancel }: SessionContaine
   const sessionRef = useRef<SessionService | null>(null);
   const mediaService = new MediaService();
   const { play, unlock } = useAudio();
+  const { announce, reset: resetVoice } = useVoice();
+  const { voiceEnabled } = useSettingsStore();
   const previousStateRef = useRef<string>('idle');
+  const [voiceToast, setVoiceToast] = useState<string | null>(null);
+
+  // Debug: show toast when voice announces something
+  useEffect(() => {
+    voiceService.setOnAnnounceCallback((text) => {
+      setVoiceToast(text);
+    });
+    return () => {
+      voiceService.setOnAnnounceCallback(() => {});
+    };
+  }, []);
 
   useWakeLock(true);
 
@@ -66,6 +83,11 @@ export function SessionContainer({ plan, onComplete, onCancel }: SessionContaine
     session.onTick((p) => {
       setProgress(p);
 
+      // Voice announcements
+      if (voiceEnabled) {
+        announce(p);
+      }
+
       // Play audio cues on state changes
       if (previousStateRef.current !== p.state) {
         if (p.state === 'stage-active' && previousStateRef.current !== 'idle') {
@@ -91,6 +113,7 @@ export function SessionContainer({ plan, onComplete, onCancel }: SessionContaine
     session.onComplete((_completedPlan, duration, stagesCompleted) => {
       play('session-complete');
       setSessionResult({ duration, stagesCompleted });
+      resetVoice();
     });
 
     // Unlock audio and start session
@@ -102,6 +125,7 @@ export function SessionContainer({ plan, onComplete, onCancel }: SessionContaine
 
     return () => {
       session.stop();
+      resetVoice();
     };
   }, [plan]);
 
@@ -141,24 +165,24 @@ export function SessionContainer({ plan, onComplete, onCancel }: SessionContaine
     const seconds = sessionResult.duration % 60;
 
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-surface-dark">
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900">
         <div className="text-center max-w-sm">
-          <span className="text-7xl mb-6 block">🎉</span>
+          <span className="text-7xl mb-6 block animate-bounce">🎉</span>
           <h1 className="text-3xl font-bold text-white mb-3">Session Complete!</h1>
-          <p className="text-gray-300 text-lg mb-1">{plan.name}</p>
+          <p className="text-purple-200 text-lg mb-1">{plan.name}</p>
           <div className="flex justify-center gap-6 mt-4 mb-8">
-            <div className="text-center">
+            <div className="text-center bg-white/10 rounded-xl px-5 py-3 backdrop-blur-sm">
               <p className="text-2xl font-bold text-white">{sessionResult.stagesCompleted}</p>
-              <p className="text-sm text-gray-400">stages</p>
+              <p className="text-sm text-purple-200">stages</p>
             </div>
-            <div className="text-center">
+            <div className="text-center bg-white/10 rounded-xl px-5 py-3 backdrop-blur-sm">
               <p className="text-2xl font-bold text-white">{minutes}:{seconds.toString().padStart(2, '0')}</p>
-              <p className="text-sm text-gray-400">duration</p>
+              <p className="text-sm text-purple-200">duration</p>
             </div>
           </div>
           <button
             onClick={handleFinishSession}
-            className="w-full py-3 bg-primary-600 text-white rounded-lg font-semibold hover:bg-primary-700 transition-colors"
+            className="w-full py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl font-semibold hover:from-indigo-600 hover:to-purple-600 transition-all shadow-lg"
           >
             Done
           </button>
@@ -213,6 +237,13 @@ export function SessionContainer({ plan, onComplete, onCancel }: SessionContaine
           onCancel={onCancel}
         />
       </div>
+      {voiceToast && (
+        <Toast
+          message={`🔊 ${voiceToast}`}
+          tone="success"
+          onDismiss={() => setVoiceToast(null)}
+        />
+      )}
     </div>
   );
 }

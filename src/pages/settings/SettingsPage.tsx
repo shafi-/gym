@@ -6,6 +6,7 @@ import { Slider } from '../../components/ui/Slider';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { Toast } from '../../components/ui/Toast';
 import { PageLayout } from '../../components/ui/PageLayout';
+import { VoiceSettings } from '../../components/settings/VoiceSettings';
 
 interface SettingsPageProps {
   onBack: () => void;
@@ -61,10 +62,16 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
       </header>
 
       <main className="p-4 space-y-6">
+        {/* Voice Guidance Section */}
+        <VoiceSettings />
+
         {/* Audio Section */}
         <section>
-          <h2 className="text-lg font-semibold text-gray-700 mb-3">Audio</h2>
-          <div className="bg-white rounded-xl p-4 space-y-4">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="w-8 h-8 flex items-center justify-center bg-purple-100 text-purple-600 rounded-lg">🔊</span>
+            <h2 className="text-lg font-semibold text-gray-700">Audio</h2>
+          </div>
+          <div className="bg-white rounded-xl p-4 space-y-4 shadow-sm">
             <Slider
               label="Volume"
               min={0}
@@ -97,8 +104,11 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
 
         {/* Data Section */}
         <section>
-          <h2 className="text-lg font-semibold text-gray-700 mb-3">Data</h2>
-          <div className="bg-white rounded-xl p-4 space-y-3">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-lg">💾</span>
+            <h2 className="text-lg font-semibold text-gray-700">Data</h2>
+          </div>
+          <div className="bg-white rounded-xl p-4 space-y-3 shadow-sm">
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Storage Used</span>
               <span className="font-medium">{formatSize(storageUsed)}</span>
@@ -122,8 +132,11 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
 
         {/* About Section */}
         <section>
-          <h2 className="text-lg font-semibold text-gray-700 mb-3">About</h2>
-          <div className="bg-white rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="w-8 h-8 flex items-center justify-center bg-indigo-100 text-indigo-600 rounded-lg">ℹ️</span>
+            <h2 className="text-lg font-semibold text-gray-700">About</h2>
+          </div>
+          <div className="bg-white rounded-xl p-4 shadow-sm">
             <p className="text-gray-600">Pulse v1.0.0</p>
             <p className="text-sm text-gray-400 mt-1">Offline-first exercise plan app</p>
           </div>
