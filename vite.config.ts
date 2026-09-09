@@ -4,6 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { cloudflare } from "@cloudflare/vite-plugin";
 
 export default defineConfig({
+  base: process.env.BASE_PATH || '/',
   plugins: [
     react(),
     cloudflare(),
