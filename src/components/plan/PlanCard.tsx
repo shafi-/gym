@@ -37,6 +37,11 @@ export function PlanCard({ plan, onSelect, onDelete, onDuplicate }: PlanCardProp
           <div className="flex items-center gap-2">
             <span className="text-xl">{config.emoji}</span>
             <h3 className="font-semibold text-gray-900">{plan.name}</h3>
+            {plan.isStarter && (
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full border bg-amber-50 text-amber-700 border-amber-200">
+                Starter
+              </span>
+            )}
             <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${config.lightColor}`}>
               {plan.type}
             </span>

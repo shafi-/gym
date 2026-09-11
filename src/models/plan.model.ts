@@ -21,6 +21,8 @@ export interface Plan {
   restBetweenStages: number; // seconds
   createdAt: number;
   updatedAt: number;
+  /** Set on bundled starter plans seeded on first launch. */
+  isStarter?: boolean;
 }
 
 export interface CreatePlanDTO {
