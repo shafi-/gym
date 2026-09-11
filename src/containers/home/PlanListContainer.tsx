@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+import { Plus, RefreshCw } from 'lucide-react';
 import { PlanCard } from '../../components/plan/PlanCard';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { EmptyState } from '../../components/ui/EmptyState';
 import { PlanService } from '../../services/plan.service';
 import type { Plan } from '../../models/plan.model';
 import { Spinner } from '../../components/ui/Spinner';
@@ -64,11 +66,12 @@ export function PlanListContainer({ onSelectPlan, onCreatePlan }: PlanListContai
   if (error) {
     return (
       <div className="text-center py-8">
-        <p className="text-red-500 mb-4">{error}</p>
+        <p className="text-danger mb-4">{error}</p>
         <button
           onClick={loadPlans}
-          className="px-4 py-2 bg-primary-600 text-white rounded-lg"
+          className="inline-flex items-center gap-2 min-h-11 px-4 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-500 transition-colors"
         >
+          <RefreshCw size={16} aria-hidden />
           Retry
         </button>
       </div>
@@ -77,19 +80,12 @@ export function PlanListContainer({ onSelectPlan, onCreatePlan }: PlanListContai
 
   if (plans.length === 0) {
     return (
-      <div className="text-center py-12">
-        <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center">
-          <span className="text-4xl">🏋️</span>
-        </div>
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">No plans yet</h3>
-        <p className="text-gray-500 mb-6">Create your first workout plan and start training!</p>
-        <button
-          onClick={onCreatePlan}
-          className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg shadow-indigo-200"
-        >
-          + Create Plan
-        </button>
-      </div>
+      <EmptyState
+        icon={Plus}
+        title="No plans yet"
+        message="Create your first workout plan and start training!"
+        action={{ label: 'Create Plan', onClick: onCreatePlan }}
+      />
     );
   }
 

@@ -215,8 +215,8 @@ export const EXERCISE_TEMPLATES: ExerciseTemplate[] = [
   { id: 'yoga-30', name: 'Corpse Pose', type: 'yoga', muscleGroups: ['full-body'], equipment: ['mat'], difficulty: 'beginner', duration: 90, reps: null, notes: 'Lie flat, palms up, breathe slowly.' },
 ];
 
-export const TEMPLATE_GROUPS: { type: WorkoutType; label: string; emoji: string }[] = [
-  { type: 'hiit', label: 'HIIT / Cardio', emoji: '🏃' },
-  { type: 'strength', label: 'Strength', emoji: '💪' },
-  { type: 'yoga', label: 'Yoga / Stretch', emoji: '🧘' },
+export const TEMPLATE_GROUPS: { type: WorkoutType; label: string }[] = [
+  { type: 'hiit', label: 'HIIT / Cardio' },
+  { type: 'strength', label: 'Strength' },
+  { type: 'yoga', label: 'Yoga / Stretch' },
 ];

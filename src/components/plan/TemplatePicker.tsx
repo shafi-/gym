@@ -1,5 +1,8 @@
 import { useMemo, useState } from 'react';
+import { Search } from 'lucide-react';
 import { Modal } from '../ui/Modal';
+import { Chip } from '../ui/Chip';
+import { inputClass } from '../ui/InputStyles';
 import {
   EXERCISE_TEMPLATES,
   TEMPLATE_GROUPS,
@@ -77,140 +80,130 @@ export function TemplatePicker({ open, planType, onClose, onSelect }: TemplatePi
   }
 
   return (
-    <Modal isOpen={open} onClose={onClose}>
-      <div className="p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Add Exercise from Template</h2>
+    <Modal isOpen={open} onClose={onClose} title="Add Exercise">
+      {/* Type tabs */}
+      <div className="flex gap-2 mb-3">
+        {TEMPLATE_GROUPS.map((group) => (
+          <button
+            key={group.type}
+            type="button"
+            aria-pressed={activeType === group.type}
+            onClick={() => handleTypeSwitch(group.type)}
+            className={`flex-1 min-h-10 px-2 rounded-lg text-sm font-medium transition-colors ${
+              activeType === group.type
+                ? 'bg-primary-600 text-white'
+                : 'bg-surface-2 text-ink-2 hover:bg-line hover:text-ink'
+            }`}
+          >
+            {group.label}
+          </button>
+        ))}
+      </div>
 
-        {/* Type tabs */}
-        <div className="flex gap-2 mb-3">
-          {TEMPLATE_GROUPS.map((group) => (
-            <button
-              key={group.type}
-              onClick={() => handleTypeSwitch(group.type)}
-              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-                activeType === group.type
-                  ? 'bg-primary-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              {group.emoji} {group.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Search */}
+      {/* Search */}
+      <div className="relative mb-3">
+        <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-3" aria-hidden />
         <input
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search exercises..."
-          className="w-full px-3 py-2 mb-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+          aria-label="Search exercises"
+          className={`${inputClass} pl-10`}
         />
+      </div>
 
-        {/* Muscle group filters */}
-        <div className="flex flex-wrap gap-1.5 mb-2">
-          {groupOptions.map((group) => (
-            <button
-              key={group}
-              onClick={() => setSelectedGroups(toggle(selectedGroups, group))}
-              className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                selectedGroups.includes(group)
-                  ? 'bg-primary-100 text-primary-700 border border-primary-300'
-                  : 'bg-gray-100 text-gray-600 border border-transparent hover:bg-gray-200'
-              }`}
-            >
-              {MUSCLE_GROUP_LABELS[group]}
-            </button>
-          ))}
-        </div>
-
-        {/* Difficulty + equipment filters */}
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {DIFFICULTY_ORDER.map((difficulty) => (
-            <button
-              key={difficulty}
-              onClick={() => setSelectedDifficulties(toggle(selectedDifficulties, difficulty))}
-              className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                selectedDifficulties.includes(difficulty)
-                  ? 'bg-purple-100 text-purple-700 border border-purple-300'
-                  : 'bg-gray-100 text-gray-600 border border-transparent hover:bg-gray-200'
-              }`}
-            >
-              {DIFFICULTY_LABELS[difficulty]}
-            </button>
-          ))}
-          <button
-            onClick={() => setBodyweightOnly(!bodyweightOnly)}
-            className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-              bodyweightOnly
-                ? 'bg-emerald-100 text-emerald-700 border border-emerald-300'
-                : 'bg-gray-100 text-gray-600 border border-transparent hover:bg-gray-200'
-            }`}
+      {/* Muscle group filters */}
+      <div className="flex flex-wrap gap-1.5 mb-2">
+        {groupOptions.map((group) => (
+          <Chip
+            key={group}
+            selected={selectedGroups.includes(group)}
+            onClick={() => setSelectedGroups(toggle(selectedGroups, group))}
           >
-            No equipment
+            {MUSCLE_GROUP_LABELS[group]}
+          </Chip>
+        ))}
+      </div>
+
+      {/* Difficulty + equipment filters */}
+      <div className="flex flex-wrap gap-1.5 mb-3">
+        {DIFFICULTY_ORDER.map((difficulty) => (
+          <Chip
+            key={difficulty}
+            selected={selectedDifficulties.includes(difficulty)}
+            onClick={() => setSelectedDifficulties(toggle(selectedDifficulties, difficulty))}
+          >
+            {DIFFICULTY_LABELS[difficulty]}
+          </Chip>
+        ))}
+        <Chip selected={bodyweightOnly} onClick={() => setBodyweightOnly(!bodyweightOnly)}>
+          No equipment
+        </Chip>
+      </div>
+
+      {/* Result count */}
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs text-ink-3 tabular" aria-live="polite">
+          {filtered.length} exercise{filtered.length === 1 ? '' : 's'}
+        </p>
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="text-xs text-brand font-medium hover:underline"
+          >
+            Clear filters
           </button>
-        </div>
+        )}
+      </div>
 
-        {/* Result count */}
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-xs text-gray-500">
-            {filtered.length} exercise{filtered.length === 1 ? '' : 's'}
-          </p>
-          {hasActiveFilters && (
+      {/* Template list */}
+      <div className="space-y-2 max-h-80 overflow-y-auto pr-0.5">
+        {filtered.map((template) => {
+          const needsEquipment = template.equipment.some((e) => !BODYWEIGHT_EQUIPMENT.includes(e));
+          return (
             <button
-              onClick={clearFilters}
-              className="text-xs text-primary-600 hover:text-primary-700 font-medium"
+              key={template.id}
+              type="button"
+              onClick={() => handleSelect(template)}
+              className="w-full text-left p-3 bg-surface-2 rounded-xl hover:bg-brand-soft border border-transparent transition-colors"
             >
-              Clear filters
-            </button>
-          )}
-        </div>
-
-        {/* Template list */}
-        <div className="space-y-2 max-h-80 overflow-y-auto">
-          {filtered.map((template) => {
-            const needsEquipment = template.equipment.some((e) => !BODYWEIGHT_EQUIPMENT.includes(e));
-            return (
-              <button
-                key={template.id}
-                onClick={() => handleSelect(template)}
-                className="w-full text-left p-3 bg-gray-50 rounded-lg hover:bg-primary-50 hover:border-primary-200 border border-transparent transition-colors"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-gray-800">{template.name}</span>
-                  <span className="text-sm text-gray-500">
-                    {template.duration ? `${template.duration}s` : template.reps ? `${template.reps} reps` : ''}
-                  </span>
-                </div>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  {DIFFICULTY_LABELS[template.difficulty]} ·{' '}
-                  {template.muscleGroups.map((g) => MUSCLE_GROUP_LABELS[g]).join(', ')}
-                  {needsEquipment &&
-                    ` · ${template.equipment
-                      .filter((e) => !BODYWEIGHT_EQUIPMENT.includes(e))
-                      .map((e) => EQUIPMENT_LABELS[e])
-                      .join(', ')}`}
-                </p>
-                {template.notes && (
-                  <p className="text-xs text-gray-500 mt-1">{template.notes}</p>
-                )}
-              </button>
-            );
-          })}
-          {filtered.length === 0 && (
-            <div className="text-center py-8">
-              <p className="text-sm text-gray-500 mb-2">No exercises match your filters.</p>
-              {hasActiveFilters && (
-                <button
-                  onClick={clearFilters}
-                  className="text-sm text-primary-600 hover:text-primary-700 font-medium"
-                >
-                  Clear filters
-                </button>
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-medium text-ink">{template.name}</span>
+                <span className="text-sm text-ink-2 tabular shrink-0">
+                  {template.duration ? `${template.duration}s` : template.reps ? `${template.reps} reps` : ''}
+                </span>
+              </div>
+              <p className="text-xs text-ink-3 mt-0.5">
+                {DIFFICULTY_LABELS[template.difficulty]} ·{' '}
+                {template.muscleGroups.map((g) => MUSCLE_GROUP_LABELS[g]).join(', ')}
+                {needsEquipment &&
+                  ` · ${template.equipment
+                    .filter((e) => !BODYWEIGHT_EQUIPMENT.includes(e))
+                    .map((e) => EQUIPMENT_LABELS[e])
+                    .join(', ')}`}
+              </p>
+              {template.notes && (
+                <p className="text-xs text-ink-3 mt-1">{template.notes}</p>
               )}
-            </div>
-          )}
-        </div>
+            </button>
+          );
+        })}
+        {filtered.length === 0 && (
+          <div className="text-center py-8">
+            <p className="text-sm text-ink-2 mb-2">No exercises match your filters.</p>
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="text-sm text-brand font-medium hover:underline"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </Modal>
   );

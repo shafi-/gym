@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
 
 type ToastTone = 'success' | 'error' | 'info';
 
@@ -8,6 +9,18 @@ interface ToastProps {
   onDismiss: () => void;
   duration?: number;
 }
+
+const toneIcons: Record<ToastTone, typeof CheckCircle2> = {
+  success: CheckCircle2,
+  error: AlertCircle,
+  info: Info,
+};
+
+const toneColors: Record<ToastTone, string> = {
+  success: 'text-success',
+  error: 'text-danger',
+  info: 'text-rest',
+};
 
 export function Toast({ message, tone = 'info', onDismiss, duration = 3000 }: ToastProps) {
   // Restart the dismiss timer only when the message changes. Parent screens
@@ -20,18 +33,16 @@ export function Toast({ message, tone = 'info', onDismiss, duration = 3000 }: To
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [message, duration]);
 
-  const tones: Record<ToastTone, string> = {
-    success: 'bg-emerald-600',
-    error: 'bg-red-600',
-    info: 'bg-gray-800',
-  };
+  const Icon = toneIcons[tone];
 
   return (
     <div
-      className={`fixed bottom-6 safe-bottom left-1/2 -translate-x-1/2 z-50 px-4 py-3 rounded-lg shadow-lg text-sm font-medium text-white ${tones[tone]}`}
+      className={`fixed bottom-6 safe-bottom left-1/2 -translate-x-1/2 z-[60] flex items-center gap-2 px-4 py-3 rounded-xl shadow-lift text-sm font-medium bg-ink text-base animate-slide-up`}
       role="status"
+      aria-live="polite"
     >
-      {message}
+      <Icon size={16} className={`shrink-0 ${toneColors[tone]}`} aria-hidden />
+      <span>{message}</span>
     </div>
   );
 }

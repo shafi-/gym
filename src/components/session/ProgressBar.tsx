@@ -8,10 +8,20 @@ export function ProgressBar({ current, total }: ProgressBarProps) {
 
   return (
     <div className="w-full">
-      <div className="flex justify-between text-sm text-gray-400 mb-1">
-        <span>Stage {current} of {total}</span>
+      <div className="flex justify-between text-sm text-night-ink-2 mb-1.5 tabular">
+        <span>
+          Stage {current} of {total}
+        </span>
+        <span>{Math.round(progress)}%</span>
       </div>
-      <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+      <div
+        className="h-2 bg-night-surface rounded-full overflow-hidden"
+        role="progressbar"
+        aria-valuenow={current}
+        aria-valuemin={1}
+        aria-valuemax={total}
+        aria-label={`Stage ${current} of ${total}`}
+      >
         <div
           className="h-full bg-primary-500 rounded-full transition-all duration-300"
           style={{ width: `${progress}%` }}

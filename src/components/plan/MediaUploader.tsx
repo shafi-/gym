@@ -1,12 +1,19 @@
 import { useRef } from 'react';
+import { ImagePlus, Play, RefreshCw } from 'lucide-react';
 
 interface MediaUploaderProps {
   onFileSelect: (file: File) => void;
   currentPreview?: string | null;
+  currentMediaType?: 'image' | 'video' | null;
   onReplay?: () => void;
 }
 
-export function MediaUploader({ onFileSelect, currentPreview, onReplay }: MediaUploaderProps) {
+export function MediaUploader({
+  onFileSelect,
+  currentPreview,
+  currentMediaType,
+  onReplay,
+}: MediaUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   function handleClick() {
@@ -18,6 +25,8 @@ export function MediaUploader({ onFileSelect, currentPreview, onReplay }: MediaU
     if (file) {
       onFileSelect(file);
     }
+    // Allow re-selecting the same file after a Replace.
+    e.target.value = '';
   }
 
   return (
@@ -32,24 +41,38 @@ export function MediaUploader({ onFileSelect, currentPreview, onReplay }: MediaU
 
       {currentPreview ? (
         <div className="relative">
-          <img
-            src={currentPreview}
-            alt="Preview"
-            className="w-full h-32 object-cover rounded-lg"
-          />
-          <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/30 rounded-lg">
-            <button
-              type="button"
-              onClick={onReplay}
-              className="px-3 py-1.5 bg-white/90 rounded-lg text-sm font-medium"
-            >
-              ▶ Replay
-            </button>
+          {currentMediaType === 'video' ? (
+            <video
+              src={currentPreview}
+              className="w-full h-32 object-cover rounded-xl bg-night"
+              muted
+              playsInline
+            />
+          ) : (
+            <img
+              src={currentPreview}
+              alt="Preview"
+              className="w-full h-32 object-cover rounded-xl"
+            />
+          )}
+          <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/30 rounded-xl">
+            {currentMediaType === 'video' && onReplay && (
+              <button
+                type="button"
+                aria-label="Replay preview"
+                onClick={onReplay}
+                className="inline-flex items-center gap-1.5 min-h-10 px-3 bg-surface rounded-lg text-sm font-medium text-ink"
+              >
+                <Play size={14} aria-hidden />
+                Replay
+              </button>
+            )}
             <button
               type="button"
               onClick={handleClick}
-              className="px-3 py-1.5 bg-white/90 rounded-lg text-sm font-medium"
+              className="inline-flex items-center gap-1.5 min-h-10 px-3 bg-surface rounded-lg text-sm font-medium text-ink"
             >
+              <RefreshCw size={14} aria-hidden />
               Replace
             </button>
           </div>
@@ -58,9 +81,9 @@ export function MediaUploader({ onFileSelect, currentPreview, onReplay }: MediaU
         <button
           type="button"
           onClick={handleClick}
-          className="w-full h-32 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center gap-2 text-gray-500 hover:border-primary-400 hover:text-primary-600 transition-colors"
+          className="w-full h-32 border-2 border-dashed border-line rounded-xl flex flex-col items-center justify-center gap-2 text-ink-3 hover:border-brand hover:text-brand transition-colors"
         >
-          <span className="text-2xl">📷</span>
+          <ImagePlus size={24} aria-hidden />
           <span className="text-sm">Tap to upload photo or video</span>
         </button>
       )}

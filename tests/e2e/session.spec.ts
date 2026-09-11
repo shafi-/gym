@@ -65,7 +65,7 @@ test.describe('Session infrastructure', () => {
 
     await expect(getStageHeading(page, 'Jumping Jacks')).toBeVisible();
     await expect(page.getByText('Stage 1 of 2')).toBeVisible();
-    await expect(page.getByRole('button', { name: '⏸' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
   });
 
   test('timer counts down', async ({ page }) => {
@@ -89,13 +89,13 @@ test.describe('Session infrastructure', () => {
     const first = (await read()).replace(':', '');
 
     // Pause.
-    await page.getByRole('button', { name: '⏸' }).click();
+    await page.getByRole('button', { name: 'Pause' }).click();
     await page.waitForTimeout(1600);
     const paused = (await read()).replace(':', '');
     expect(paused).toBe(first); // timer frozen
 
     // Resume.
-    await page.getByRole('button', { name: '▶' }).click();
+    await page.getByRole('button', { name: 'Resume' }).click();
     await page.waitForTimeout(1600);
     const resumed = (await read()).replace(':', '');
     expect(Number(resumed)).toBeLessThan(Number(paused));
@@ -105,7 +105,7 @@ test.describe('Session infrastructure', () => {
     await openSession(page);
 
     await getStageHeading(page, 'Jumping Jacks').waitFor();
-    await page.getByRole('button', { name: '⏭' }).click();
+    await page.getByRole('button', { name: 'Next stage' }).click();
 
     await expect(getStageHeading(page, 'High Knees')).toBeVisible();
     await expect(page.getByText('Stage 2 of 2')).toBeVisible();
@@ -115,8 +115,8 @@ test.describe('Session infrastructure', () => {
     await openSession(page);
 
     // Skip through to complete quickly.
-    await page.getByRole('button', { name: '⏭' }).click();
-    await page.getByRole('button', { name: '⏭' }).click();
+    await page.getByRole('button', { name: 'Next stage' }).click();
+    await page.getByRole('button', { name: 'Next stage' }).click();
 
     await expect(page.getByText('Session Complete!')).toBeVisible({ timeout: 10_000 });
     await expect(page.getByRole('button', { name: 'Done' })).toBeVisible();
@@ -141,7 +141,7 @@ test.describe('Session infrastructure', () => {
     // Gate must NOT appear; the first stage should be live already.
     await expect(page.getByRole('button', { name: 'Start', exact: true })).toHaveCount(0);
     await expect(getStageHeading(page, 'Jumping Jacks')).toBeVisible();
-    await expect(page.getByRole('button', { name: '⏸' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
   });
 
   test('cold entry to session route shows the Ready gate', async ({ page }) => {

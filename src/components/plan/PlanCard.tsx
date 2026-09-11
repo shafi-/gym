@@ -1,6 +1,7 @@
 import type { Plan } from '../../models/plan.model';
-import { Card } from '../ui/Card';
-import { Button } from '../ui/Button';
+import { WORKOUT_TYPE_META } from '../../lib/workout-type';
+import { IconButton } from '../ui/IconButton';
+import { Copy, Trash2 } from 'lucide-react';
 
 interface PlanCardProps {
   plan: Plan;
@@ -16,49 +17,49 @@ function formatDuration(seconds: number): string {
   return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
 }
 
-const typeConfig = {
-  hiit: { emoji: '🏃', color: 'bg-orange-500', lightColor: 'bg-orange-50 text-orange-700 border-orange-200' },
-  strength: { emoji: '💪', color: 'bg-blue-500', lightColor: 'bg-blue-50 text-blue-700 border-blue-200' },
-  yoga: { emoji: '🧘', color: 'bg-emerald-500', lightColor: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-};
-
 export function PlanCard({ plan, onSelect, onDelete, onDuplicate }: PlanCardProps) {
+  const meta = WORKOUT_TYPE_META[plan.type];
+  const TypeIcon = meta.icon;
   const totalDuration = plan.stages.reduce(
     (sum, stage) => sum + (stage.duration ?? 0),
     0
   );
 
-  const config = typeConfig[plan.type];
-
   return (
-    <Card className="mb-3 overflow-hidden">
-      <div className={`flex items-start justify-between border-l-4 ${config.color.replace('bg-', 'border-')}`}>
-        <div className="flex-1 cursor-pointer p-1" onClick={onSelect}>
-          <div className="flex items-center gap-2">
-            <span className="text-xl">{config.emoji}</span>
-            <h3 className="font-semibold text-gray-900">{plan.name}</h3>
+    <div className="mb-3 flex items-stretch bg-surface rounded-xl border border-line shadow-soft overflow-hidden">
+      <button
+        type="button"
+        onClick={onSelect}
+        className="flex-1 min-w-0 flex items-center gap-3 p-4 text-left hover:bg-surface-2 transition-colors"
+      >
+        <span
+          className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${meta.chipClass}`}
+          aria-hidden
+        >
+          <TypeIcon size={20} className={meta.iconClass} />
+        </span>
+        <span className="min-w-0">
+          <span className="flex items-center gap-2">
+            <span className="font-semibold text-ink truncate">{plan.name}</span>
             {plan.isStarter && (
-              <span className="text-xs font-medium px-2 py-0.5 rounded-full border bg-amber-50 text-amber-700 border-amber-200">
+              <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-brand-soft text-brand shrink-0">
                 Starter
               </span>
             )}
-            <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${config.lightColor}`}>
-              {plan.type}
-            </span>
-          </div>
-          <p className="text-sm text-gray-500 mt-1 ml-8">
-            {plan.stages.length} stages · {formatDuration(totalDuration)}
-          </p>
-        </div>
-        <div className="flex gap-2 pt-1">
-          <Button variant="ghost" size="sm" onClick={onDuplicate}>
-            Copy
-          </Button>
-          <Button variant="ghost" size="sm" onClick={onDelete}>
-            ✕
-          </Button>
-        </div>
+          </span>
+          <span className="block text-sm text-ink-2 mt-0.5 tabular">
+            {meta.label} · {plan.stages.length} stages · {formatDuration(totalDuration)}
+          </span>
+        </span>
+      </button>
+      <div className="flex items-center gap-0.5 pr-2">
+        <IconButton label="Copy plan" onClick={onDuplicate}>
+          <Copy size={18} />
+        </IconButton>
+        <IconButton label="Delete plan" variant="danger" onClick={onDelete}>
+          <Trash2 size={18} />
+        </IconButton>
       </div>
-    </Card>
+    </div>
   );
 }

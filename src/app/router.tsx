@@ -93,11 +93,17 @@ function PlanDetailRoute() {
   if (!loaded) return <Spinner />;
   if (!plan) return <Navigate to="/" replace />;
 
+  const handleDelete = async () => {
+    await planService.deletePlan(plan.id);
+    navigate('/', { replace: true });
+  };
+
   return (
     <PlanDetailPage
       plan={plan}
       onStartSession={() => navigate(`/session/${planId}`)}
       onEdit={() => navigate(`/plan/${planId}/edit`)}
+      onDelete={handleDelete}
       onBack={() => navigate('/')}
     />
   );

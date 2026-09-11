@@ -1,9 +1,27 @@
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import { SortableContext, arrayMove, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { Dumbbell, Flame, Flower2, Plus, Sparkles } from 'lucide-react';
 import type { Plan, WorkoutType, Stage } from '../../models/plan.model';
 import { StageRow } from '../../components/plan/StageRow';
 import { StageEditorModal } from '../../components/plan/StageEditorModal';
 import { TemplatePicker } from '../../components/plan/TemplatePicker';
 import { PageLayout } from '../../components/ui/PageLayout';
+import { ScreenHeader } from '../../components/ui/ScreenHeader';
+import { BottomActionBar } from '../../components/ui/BottomActionBar';
+import { SegmentedControl } from '../../components/ui/SegmentedControl';
+import { Slider } from '../../components/ui/Slider';
+import { Button } from '../../components/ui/Button';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { inputClass, labelClass } from '../../components/ui/InputStyles';
 import { PlanService } from '../../services/plan.service';
 import { MediaService } from '../../services/media.service';
 import type { ExerciseTemplate } from '../../data/templates';
@@ -21,6 +39,12 @@ function generateId(): string {
   return crypto.randomUUID();
 }
 
+const TYPE_OPTIONS = [
+  { value: 'hiit' as const, label: 'HIIT', icon: Flame },
+  { value: 'strength' as const, label: 'Strength', icon: Dumbbell },
+  { value: 'yoga' as const, label: 'Yoga', icon: Flower2 },
+];
+
 export function PlanEditorPage({ plan, onSave, onCancel }: PlanEditorPageProps) {
   const [name, setName] = useState(plan?.name ?? '');
   const [type, setType] = useState<WorkoutType>(plan?.type ?? 'hiit');
@@ -28,20 +52,62 @@ export function PlanEditorPage({ plan, onSave, onCancel }: PlanEditorPageProps) 
   const [restBetweenStages, setRestBetweenStages] = useState(plan?.restBetweenStages ?? 30);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
 
   // Stage editor modal state
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
+  const [previewType, setPreviewType] = useState<'image' | 'video' | null>(null);
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false);
+
+  // Drag-reorder sensors: a small activation distance keeps vertical page
+  // scrolling working on touch; keyboard users get arrow-key reordering.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  // Unsaved-changes detection for the back affordance.
+  const isDirty = useMemo(() => {
+    if (!plan) return name.trim() !== '' || stages.length > 0;
+    return (
+      name !== plan.name ||
+      type !== plan.type ||
+      restBetweenStages !== plan.restBetweenStages ||
+      stages.length !== plan.stages.length ||
+      stages.some((stage, i) => {
+        const original = plan.stages[i];
+        return (
+          !original ||
+          original.name !== stage.name ||
+          original.duration !== stage.duration ||
+          original.reps !== stage.reps ||
+          original.notes !== stage.notes ||
+          original.mediaId !== stage.mediaId ||
+          original.restAfter !== stage.restAfter
+        );
+      })
+    );
+  }, [plan, name, type, restBetweenStages, stages]);
+
+  function handleCancel() {
+    if (isDirty) {
+      setConfirmDiscard(true);
+    } else {
+      onCancel();
+    }
+  }
 
   useEffect(() => {
     if (editingIndex === null) {
       setPreviewSrc(null);
+      setPreviewType(null);
       return;
     }
     const stage = stages[editingIndex];
     if (!stage?.mediaId) {
       setPreviewSrc(null);
+      setPreviewType(null);
       return;
     }
 
@@ -53,6 +119,7 @@ export function PlanEditorPage({ plan, onSave, onCancel }: PlanEditorPageProps) 
       if (cancelled || !media) return;
       objectUrl = URL.createObjectURL(media.blob);
       setPreviewSrc(objectUrl);
+      setPreviewType(media.mimeType.startsWith('video') ? 'video' : 'image');
     }
     loadPreview();
 
@@ -108,6 +175,17 @@ export function PlanEditorPage({ plan, onSave, onCancel }: PlanEditorPageProps) 
     setStages(stages.filter((_, i) => i !== index));
   }
 
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    setStages((current) => {
+      const from = current.findIndex((s) => s.id === active.id);
+      const to = current.findIndex((s) => s.id === over.id);
+      if (from === -1 || to === -1) return current;
+      return arrayMove(current, from, to);
+    });
+  }
+
   function handleSaveStage(updates: Partial<Stage>) {
     if (editingIndex !== null) {
       handleUpdateStage(editingIndex, updates);
@@ -121,6 +199,7 @@ export function PlanEditorPage({ plan, onSave, onCancel }: PlanEditorPageProps) 
       const media = await mediaService.uploadMedia(file);
       if (previewSrc) URL.revokeObjectURL(previewSrc);
       setPreviewSrc(URL.createObjectURL(media.blob));
+      setPreviewType(file.type.startsWith('video') ? 'video' : 'image');
       handleUpdateStage(editingIndex, {
         mediaId: media.id,
         mediaType: file.type.startsWith('video') ? 'video' : 'image',
@@ -161,7 +240,7 @@ export function PlanEditorPage({ plan, onSave, onCancel }: PlanEditorPageProps) 
           ...plan,
           name,
           type,
-          stages,
+          stages: stages.map((stage, order) => ({ ...stage, order })),
           restBetweenStages,
         });
       } else {
@@ -183,117 +262,118 @@ export function PlanEditorPage({ plan, onSave, onCancel }: PlanEditorPageProps) 
 
   return (
     <PageLayout>
-      <header className="sticky top-0 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 px-4 py-3 flex items-center justify-between shadow-lg">
-        <button onClick={onCancel} className="text-white/80 font-medium hover:text-white">
-          Cancel
-        </button>
-        <h1 className="font-semibold text-white">
-          {plan ? 'Edit Plan' : 'New Plan'}
-        </h1>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="text-white font-medium bg-white/20 px-3 py-1 rounded-lg hover:bg-white/30 disabled:opacity-50 transition-colors"
-        >
-          {saving ? 'Saving...' : 'Save'}
-        </button>
-      </header>
+      <ScreenHeader
+        title={plan ? 'Edit Plan' : 'New Plan'}
+        onBack={handleCancel}
+      />
 
-      <main className="p-4 space-y-4">
+      <main className="p-4 space-y-5 pb-6">
         {error && (
-          <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm">
+          <div className="p-3 bg-danger-soft text-danger rounded-xl text-sm animate-fade-in">
             {error}
           </div>
         )}
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="plan-name" className={labelClass}>
             Plan Name
           </label>
           <input
+            id="plan-name"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Morning HIIT"
-            className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className={inputClass}
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Workout Type
-          </label>
-          <div className="flex gap-2">
-            {(['hiit', 'strength', 'yoga'] as WorkoutType[]).map((t) => (
-              <button
-                key={t}
-                onClick={() => setType(t)}
-                className={`flex-1 py-2.5 px-4 rounded-xl font-medium capitalize transition-all ${
-                  type === t
-                    ? t === 'hiit'
-                      ? 'bg-orange-500 text-white shadow-lg shadow-orange-200'
-                      : t === 'strength'
-                      ? 'bg-blue-500 text-white shadow-lg shadow-blue-200'
-                      : 'bg-emerald-500 text-white shadow-lg shadow-emerald-200'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {t === 'hiit' ? '🏃' : t === 'strength' ? '💪' : '🧘'} {t}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Rest Between Stages: {restBetweenStages}s
-          </label>
-          <input
-            type="range"
-            min="10"
-            max="120"
-            step="5"
-            value={restBetweenStages}
-            onChange={(e) => setRestBetweenStages(Number(e.target.value))}
-            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-600"
+          <span className={labelClass}>Workout Type</span>
+          <SegmentedControl
+            label="Workout type"
+            options={TYPE_OPTIONS}
+            value={type}
+            onChange={setType}
           />
         </div>
+
+        <Slider
+          label="Rest Between Stages"
+          min={10}
+          max={120}
+          step={5}
+          value={restBetweenStages}
+          onChange={setRestBetweenStages}
+          formatValue={(v) => `${v}s`}
+        />
 
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="block text-sm font-medium text-gray-700">
-              Stages ({stages.length})
-            </label>
+            <span className={labelClass + ' mb-0'}>Stages ({stages.length})</span>
+            <span className="text-xs text-ink-3">Drag the handle to reorder</span>
           </div>
 
-          <div className="space-y-2">
-            {stages.map((stage, index) => (
-              <StageRow
-                key={stage.id}
-                stage={stage}
-                index={index}
-                onEdit={() => setEditingIndex(index)}
-                onDelete={() => handleDeleteStage(index)}
-              />
-            ))}
-          </div>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={stages.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+              <ul className="space-y-2">
+                {stages.map((stage, index) => (
+                  <StageRow
+                    key={stage.id}
+                    stage={stage}
+                    index={index}
+                    onEdit={() => setEditingIndex(index)}
+                    onDelete={() => handleDeleteStage(index)}
+                  />
+                ))}
+              </ul>
+            </SortableContext>
+          </DndContext>
+
+          {stages.length === 0 && (
+            <p className="text-sm text-ink-3 py-4 text-center">
+              No stages yet — add one below or pick a template.
+            </p>
+          )}
 
           <button
+            type="button"
             onClick={handleAddStage}
-            className="w-full mt-3 py-3 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center gap-2 text-gray-500 font-medium hover:border-primary-400 hover:text-primary-600 transition-colors"
+            className="w-full mt-3 min-h-12 border-2 border-dashed border-line rounded-xl flex items-center justify-center gap-2 text-ink-2 font-medium hover:border-brand hover:text-brand transition-colors"
           >
-            <span className="text-lg leading-none">+</span>
-            <span>Add New Stage</span>
+            <Plus size={18} aria-hidden />
+            Add New Stage
           </button>
 
           <button
+            type="button"
             onClick={() => setTemplatePickerOpen(true)}
-            className="w-full mt-2 py-2.5 text-sm text-primary-600 font-medium hover:bg-primary-50 rounded-lg transition-colors"
+            className="w-full mt-2 min-h-11 inline-flex items-center justify-center gap-1.5 text-sm text-brand font-medium hover:bg-brand-soft rounded-xl transition-colors"
           >
+            <Sparkles size={16} aria-hidden />
             Or pick from a template…
           </button>
         </div>
       </main>
+
+      <BottomActionBar>
+        <Button size="lg" className="w-full" onClick={handleSave} disabled={saving}>
+          {saving ? 'Saving…' : 'Save Plan'}
+        </Button>
+      </BottomActionBar>
+
+      <ConfirmDialog
+        open={confirmDiscard}
+        title="Discard changes?"
+        message="You have unsaved changes to this plan. Leave without saving?"
+        confirmLabel="Discard"
+        danger
+        onConfirm={() => {
+          setConfirmDiscard(false);
+          onCancel();
+        }}
+        onCancel={() => setConfirmDiscard(false)}
+      />
 
       <StageEditorModal
         open={editingIndex !== null}
@@ -303,6 +383,7 @@ export function PlanEditorPage({ plan, onSave, onCancel }: PlanEditorPageProps) 
         onSave={handleSaveStage}
         onUploadMedia={handleUploadMedia}
         previewSrc={previewSrc}
+        previewType={previewType}
         onReplay={handleReplayPreview}
       />
 

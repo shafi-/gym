@@ -3,18 +3,137 @@
 @tailwind utilities;
 
 @layer base {
+  /* Semantic design tokens. RGB triplets so Tailwind can apply alpha.
+     Components use semantic classes (bg-base, text-ink, bg-surface…) and
+     never reference light/dark palette colors directly. */
+  :root {
+    --c-base: 249 249 252;
+    --c-surface: 255 255 255;
+    --c-surface-2: 242 242 247;
+    --c-line: 228 228 237;
+    --c-ink: 24 24 32;
+    --c-ink-2: 92 92 108;
+    --c-ink-3: 150 150 166;
+    --c-brand: 79 70 229;
+    --c-brand-strong: 67 56 202;
+    --c-brand-soft: 238 242 255;
+    --c-brand-ink: 255 255 255;
+    --c-success: 16 185 129;
+    --c-success-soft: 209 250 229;
+    --c-danger: 225 29 72;
+    --c-danger-soft: 255 228 230;
+    --c-danger-ink: 255 255 255;
+    --c-rest: 59 130 246;
+    --c-rest-soft: 219 234 254;
+    --c-scrim: 15 15 26;
+    --c-type-hiit: 234 88 12;
+    --c-type-hiit-soft: 255 237 213;
+    --c-type-strength: 37 99 235;
+    --c-type-strength-soft: 219 234 254;
+    --c-type-yoga: 5 150 105;
+    --c-type-yoga-soft: 209 250 229;
+    /* Session player keeps an immersive dark look in both themes. */
+    --c-night: 15 15 26;
+    --c-night-surface: 30 30 52;
+    --c-night-line: 56 56 82;
+    --c-night-ink: 240 240 248;
+    --c-night-ink-2: 156 156 180;
+  }
+
+  [data-theme='dark'] {
+    --c-base: 15 15 26;
+    --c-surface: 26 26 46;
+    --c-surface-2: 38 38 62;
+    --c-line: 54 54 80;
+    --c-ink: 240 240 248;
+    --c-ink-2: 164 164 186;
+    --c-ink-3: 112 112 138;
+    --c-brand: 129 140 248;
+    --c-brand-strong: 99 102 241;
+    --c-brand-soft: 46 44 105;
+    --c-brand-ink: 255 255 255;
+    --c-success: 52 211 153;
+    --c-success-soft: 20 60 48;
+    --c-danger: 248 113 113;
+    --c-danger-soft: 74 26 34;
+    --c-danger-ink: 69 10 20;
+    --c-rest: 96 165 250;
+    --c-rest-soft: 24 46 84;
+    --c-scrim: 0 0 0;
+    --c-type-hiit: 251 146 60;
+    --c-type-hiit-soft: 66 40 16;
+    --c-type-strength: 96 165 250;
+    --c-type-strength-soft: 22 44 82;
+    --c-type-yoga: 52 211 153;
+    --c-type-yoga-soft: 16 58 46;
+  }
+
   html {
     -webkit-tap-highlight-color: transparent;
   }
 
   body {
-    @apply bg-gray-50 text-gray-900 antialiased;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    @apply bg-base text-ink antialiased;
+    font-family:
+      ui-sans-serif,
+      -apple-system,
+      BlinkMacSystemFont,
+      'Segoe UI',
+      Roboto,
+      sans-serif;
+  }
+
+  /* Keyboard focus is always visible; pointer focus stays clean. */
+  :focus-visible {
+    outline: 2px solid rgb(var(--c-brand));
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
 
 @layer utilities {
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Styled range input (used by ui/Slider). */
+  .slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 8px;
+    border-radius: 9999px;
+    background: rgb(var(--c-surface-2));
+    outline: none;
+  }
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgb(var(--c-brand));
+    border: 3px solid rgb(var(--c-surface));
+    box-shadow: 0 1px 4px rgb(var(--c-scrim) / 0.25);
+  }
+  .slider::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgb(var(--c-brand));
+    border: 3px solid rgb(var(--c-surface));
+    box-shadow: 0 1px 4px rgb(var(--c-scrim) / 0.25);
   }
 }

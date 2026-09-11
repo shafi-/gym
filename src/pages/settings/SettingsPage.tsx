@@ -1,11 +1,18 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Database, Info, Moon, Sun, Monitor, Volume2 } from 'lucide-react';
 import { useSettingsStore } from '../../stores/settings.store';
+import { useTheme } from '../../hooks/useTheme';
 import { MediaService } from '../../services/media.service';
 import { HistoryService } from '../../services/history.service';
+import type { ThemePreference } from '../../lib/theme';
 import { Slider } from '../../components/ui/Slider';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { Toast } from '../../components/ui/Toast';
 import { PageLayout } from '../../components/ui/PageLayout';
+import { ScreenHeader } from '../../components/ui/ScreenHeader';
+import { Card } from '../../components/ui/Card';
+import { Switch } from '../../components/ui/Switch';
+import { SegmentedControl } from '../../components/ui/SegmentedControl';
 import { VoiceSettings } from '../../components/settings/VoiceSettings';
 
 interface SettingsPageProps {
@@ -15,21 +22,39 @@ interface SettingsPageProps {
 const mediaService = new MediaService();
 const historyService = new HistoryService();
 
+const THEME_OPTIONS = [
+  { value: 'light' as const, label: 'Light', icon: Sun },
+  { value: 'dark' as const, label: 'Dark', icon: Moon },
+  { value: 'system' as const, label: 'System', icon: Monitor },
+];
+
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function SectionHeader({ icon: Icon, title }: { icon: typeof Volume2; title: string }) {
+  return (
+    <div className="flex items-center gap-2 mb-3">
+      <span className="w-8 h-8 flex items-center justify-center bg-brand-soft text-brand rounded-lg" aria-hidden>
+        <Icon size={16} />
+      </span>
+      <h2 className="text-base font-semibold text-ink">{title}</h2>
+    </div>
+  );
+}
+
 export function SettingsPage({ onBack }: SettingsPageProps) {
   const { volume, soundEnabled, voiceCountdownEnabled, setVolume, setSoundEnabled, setVoiceCountdownEnabled } = useSettingsStore();
+  const { preference, setPreference } = useTheme();
   const [storageUsed, setStorageUsed] = useState(0);
   const [confirmAction, setConfirmAction] = useState<'history' | 'all' | null>(null);
   const [toast, setToast] = useState<{ message: string; tone: 'success' | 'error' } | null>(null);
 
-  useState(() => {
-    mediaService.getTotalStorageUsed().then(setStorageUsed);
-  });
+  useEffect(() => {
+    mediaService.getTotalStorageUsed().then(setStorageUsed).catch(console.error);
+  }, []);
 
   async function runConfirmedAction() {
     if (confirmAction === 'history') {
@@ -53,93 +78,95 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
 
   return (
     <PageLayout>
-      <header className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
-        <button onClick={onBack} className="text-primary-600 font-medium">
-          ← Back
-        </button>
-        <h1 className="font-semibold text-gray-900">Settings</h1>
-        <div className="w-12" />
-      </header>
+      <ScreenHeader title="Settings" onBack={onBack} />
 
       <main className="p-4 space-y-6">
+        {/* Appearance Section */}
+        <section>
+          <SectionHeader icon={Sun} title="Appearance" />
+          <Card>
+            <SegmentedControl
+              label="Theme"
+              options={THEME_OPTIONS}
+              value={preference}
+              onChange={(value) => setPreference(value as ThemePreference)}
+            />
+            <p className="text-xs text-ink-3 mt-2">
+              {preference === 'system' ? 'Following your device setting.' : `${preference === 'dark' ? 'Dark' : 'Light'} theme on.`}
+            </p>
+          </Card>
+        </section>
+
         {/* Voice Guidance Section */}
-        <VoiceSettings />
+        <section>
+          <VoiceSettings />
+        </section>
 
         {/* Audio Section */}
         <section>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="w-8 h-8 flex items-center justify-center bg-purple-100 text-purple-600 rounded-lg">🔊</span>
-            <h2 className="text-lg font-semibold text-gray-700">Audio</h2>
-          </div>
-          <div className="bg-white rounded-xl p-4 space-y-4 shadow-sm">
+          <SectionHeader icon={Volume2} title="Audio" />
+          <Card className="space-y-4">
             <Slider
               label="Volume"
               min={0}
               max={100}
               value={volume * 100}
               onChange={(v) => setVolume(v / 100)}
+              formatValue={(v) => `${v}%`}
             />
 
-            <label className="flex items-center justify-between">
-              <span className="text-gray-700">Sound Effects</span>
-              <input
-                type="checkbox"
+            <div className="flex items-center justify-between">
+              <span className="text-ink">Sound Effects</span>
+              <Switch
+                label="Sound effects"
                 checked={soundEnabled}
-                onChange={(e) => setSoundEnabled(e.target.checked)}
-                className="w-5 h-5 accent-primary-600"
+                onChange={setSoundEnabled}
               />
-            </label>
+            </div>
 
-            <label className="flex items-center justify-between">
-              <span className="text-gray-700">Voice Countdown</span>
-              <input
-                type="checkbox"
+            <div className="flex items-center justify-between">
+              <span className="text-ink">Voice Countdown</span>
+              <Switch
+                label="Voice countdown"
                 checked={voiceCountdownEnabled}
-                onChange={(e) => setVoiceCountdownEnabled(e.target.checked)}
-                className="w-5 h-5 accent-primary-600"
+                onChange={setVoiceCountdownEnabled}
               />
-            </label>
-          </div>
+            </div>
+          </Card>
         </section>
 
         {/* Data Section */}
         <section>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-lg">💾</span>
-            <h2 className="text-lg font-semibold text-gray-700">Data</h2>
-          </div>
-          <div className="bg-white rounded-xl p-4 space-y-3 shadow-sm">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Storage Used</span>
-              <span className="font-medium">{formatSize(storageUsed)}</span>
+          <SectionHeader icon={Database} title="Data" />
+          <Card className="divide-y divide-line !p-0">
+            <div className="flex justify-between items-center px-4 py-3 text-sm">
+              <span className="text-ink-2">Storage Used</span>
+              <span className="font-medium text-ink tabular">{formatSize(storageUsed)}</span>
             </div>
-
             <button
+              type="button"
               onClick={() => setConfirmAction('history')}
-              className="w-full py-2 text-left text-red-600 font-medium"
+              className="w-full min-h-11 px-4 py-2.5 text-left text-danger font-medium hover:bg-danger-soft transition-colors"
             >
               Clear History
             </button>
-
             <button
+              type="button"
               onClick={() => setConfirmAction('all')}
-              className="w-full py-2 text-left text-red-600 font-medium"
+              className="w-full min-h-11 px-4 py-2.5 text-left text-danger font-medium hover:bg-danger-soft transition-colors rounded-b-xl"
             >
               Clear All Data
             </button>
-          </div>
+          </Card>
         </section>
 
         {/* About Section */}
         <section>
-          <div className="flex items-center gap-2 mb-3">
-            <span className="w-8 h-8 flex items-center justify-center bg-indigo-100 text-indigo-600 rounded-lg">ℹ️</span>
-            <h2 className="text-lg font-semibold text-gray-700">About</h2>
-          </div>
-          <div className="bg-white rounded-xl p-4 shadow-sm">
-            <p className="text-gray-600">Pulse v1.0.0</p>
-            <p className="text-sm text-gray-400 mt-1">Offline-first exercise plan app</p>
-          </div>
+          <SectionHeader icon={Info} title="About" />
+          <Card>
+            <p className="text-ink">Pulse v1.0.0</p>
+            <p className="text-sm text-ink-2 mt-1">Offline-first exercise plan app</p>
+          </Card>
         </section>
       </main>
 

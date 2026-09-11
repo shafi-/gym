@@ -1,10 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { History, Trash2 } from 'lucide-react';
 import type { SessionHistory } from '../../models/history.model';
 import { HistoryService } from '../../services/history.service';
 import { Card } from '../../components/ui/Card';
 import { Spinner } from '../../components/ui/Spinner';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { PageLayout } from '../../components/ui/PageLayout';
+import { ScreenHeader } from '../../components/ui/ScreenHeader';
+import { BottomActionBar } from '../../components/ui/BottomActionBar';
+import { Button } from '../../components/ui/Button';
+import { EmptyState } from '../../components/ui/EmptyState';
+import { IconButton } from '../../components/ui/IconButton';
 
 interface HistoryPageProps {
   onBack: () => void;
@@ -12,15 +18,19 @@ interface HistoryPageProps {
 
 const historyService = new HistoryService();
 
-function formatDate(timestamp: number): string {
-  const date = new Date(timestamp);
-  const now = new Date();
-  const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+const DAY_MS = 86_400_000;
 
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays} days ago`;
-  return date.toLocaleDateString();
+function dayLabel(timestamp: number): string {
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  if (timestamp >= startOfToday) return 'Today';
+  if (timestamp >= startOfToday - DAY_MS) return 'Yesterday';
+  const date = new Date(timestamp);
+  const opts: Intl.DateTimeFormatOptions =
+    date.getFullYear() === now.getFullYear()
+      ? { weekday: 'short', month: 'short', day: 'numeric' }
+      : { month: 'short', day: 'numeric', year: 'numeric' };
+  return date.toLocaleDateString(undefined, opts);
 }
 
 function formatDuration(seconds: number): string {
@@ -28,6 +38,13 @@ function formatDuration(seconds: number): string {
   const secs = seconds % 60;
   if (mins === 0) return `${secs}s`;
   return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
+}
+
+function formatTime(timestamp: number): string {
+  return new Date(timestamp).toLocaleTimeString(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 }
 
 export function HistoryPage({ onBack }: HistoryPageProps) {
@@ -54,6 +71,21 @@ export function HistoryPage({ onBack }: HistoryPageProps) {
       setLoading(false);
     }
   }
+
+  // Group sorted entries into consecutive calendar-day sections.
+  const groups = useMemo(() => {
+    const result: { label: string; entries: SessionHistory[] }[] = [];
+    for (const entry of history) {
+      const label = dayLabel(entry.completedAt);
+      const last = result[result.length - 1];
+      if (last && last.label === label) {
+        last.entries.push(entry);
+      } else {
+        result.push({ label, entries: [entry] });
+      }
+    }
+    return result;
+  }, [history]);
 
   async function confirmDelete() {
     if (!pendingDeleteId) return;
@@ -82,55 +114,59 @@ export function HistoryPage({ onBack }: HistoryPageProps) {
 
   return (
     <PageLayout>
-      <header className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
-        <button onClick={onBack} className="text-primary-600 font-medium">
-          ← Back
-        </button>
-        <h1 className="font-semibold text-gray-900">History</h1>
-        {history.length > 0 && (
-          <button
-            onClick={() => setConfirmClearAll(true)}
-            className="text-red-500 text-sm font-medium"
-          >
-            Clear All
-          </button>
-        )}
-      </header>
+      <ScreenHeader title="History" onBack={onBack} />
 
       <main className="p-4">
         {error && (
-          <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm mb-4">
+          <div className="p-3 bg-danger-soft text-danger rounded-xl text-sm mb-4">
             {error}
           </div>
         )}
 
         {history.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500">No sessions yet. Complete a workout to see it here!</p>
-          </div>
+          <EmptyState
+            icon={History}
+            title="No sessions yet"
+            message="Complete a workout to see it here!"
+          />
         ) : (
-          <div className="space-y-2">
-            {history.map((entry) => (
-              <Card key={entry.id}>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-medium text-gray-900">{entry.planName}</h3>
-                    <p className="text-sm text-gray-500">
-                      {formatDate(entry.completedAt)} · {formatDuration(entry.totalDuration)} · {entry.stagesCompleted} stages
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setPendingDeleteId(entry.id)}
-                    className="text-gray-400 hover:text-red-500"
-                  >
-                    ✕
-                  </button>
-                </div>
-              </Card>
-            ))}
-          </div>
+          groups.map((group) => (
+            <section key={group.label} className="mb-6">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-3 mb-2">
+                {group.label}
+              </h2>
+              <div className="space-y-2">
+                {group.entries.map((entry) => (
+                  <Card key={entry.id} className="!p-3 flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <h3 className="font-medium text-ink truncate">{entry.planName}</h3>
+                      <p className="text-sm text-ink-2 tabular">
+                        {formatTime(entry.completedAt)} · {formatDuration(entry.totalDuration)} ·{' '}
+                        {entry.stagesCompleted} stages
+                      </p>
+                    </div>
+                    <IconButton
+                      label={`Delete ${entry.planName} session`}
+                      variant="danger"
+                      onClick={() => setPendingDeleteId(entry.id)}
+                    >
+                      <Trash2 size={17} />
+                    </IconButton>
+                  </Card>
+                ))}
+              </div>
+            </section>
+          ))
         )}
       </main>
+
+      {history.length > 0 && (
+        <BottomActionBar>
+          <Button variant="secondary" size="lg" className="w-full text-danger" onClick={() => setConfirmClearAll(true)}>
+            Clear All History
+          </Button>
+        </BottomActionBar>
+      )}
 
       <ConfirmDialog
         open={pendingDeleteId !== null}

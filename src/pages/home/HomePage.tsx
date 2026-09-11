@@ -1,5 +1,8 @@
+import { History, Plus, Settings, Upload } from 'lucide-react';
 import { PlanListContainer } from '../../containers/home/PlanListContainer';
 import { PageLayout } from '../../components/ui/PageLayout';
+import { ScreenHeader } from '../../components/ui/ScreenHeader';
+import { IconButton } from '../../components/ui/IconButton';
 
 export interface HomePageProps {
   onSelectPlan: (id: string) => void;
@@ -12,39 +15,39 @@ export interface HomePageProps {
 export function HomePage({ onSelectPlan, onCreatePlan, onImport, onHistory, onSettings }: HomePageProps) {
   return (
     <PageLayout>
-      <header className="sticky top-0 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 px-4 py-4 flex items-center justify-between shadow-lg">
-        <h1 className="text-xl font-bold text-white">Pulse</h1>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={onHistory}
-            className="w-9 h-9 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-colors"
-            aria-label="History"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </button>
-          <button
-            onClick={onSettings}
-            className="w-9 h-9 flex items-center justify-center text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-colors"
-            aria-label="Settings"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          </button>
-          <button
-            onClick={onImport}
-            className="text-sm text-white font-medium px-3 py-1.5 bg-white/20 rounded-lg hover:bg-white/30 transition-colors"
-          >
-            Import
-          </button>
-        </div>
-      </header>
+      <ScreenHeader
+        variant="brand"
+        title="Pulse"
+        actions={
+          <>
+            <IconButton
+              label="History"
+              onClick={onHistory}
+              className="text-white/80 hover:text-white hover:bg-white/15"
+            >
+              <History size={20} />
+            </IconButton>
+            <IconButton
+              label="Settings"
+              onClick={onSettings}
+              className="text-white/80 hover:text-white hover:bg-white/15"
+            >
+              <Settings size={20} />
+            </IconButton>
+            <button
+              type="button"
+              onClick={onImport}
+              className="inline-flex items-center gap-1.5 min-h-11 px-3 mr-1 text-sm font-medium text-brand-ink bg-white/15 rounded-full hover:bg-white/25 transition-colors"
+            >
+              <Upload size={16} aria-hidden />
+              Import
+            </button>
+          </>
+        }
+      />
 
       <main className="p-4">
-        <h2 className="text-lg font-semibold text-gray-700 mb-4">My Plans</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-3 mb-3">My Plans</h2>
         <PlanListContainer
           onSelectPlan={onSelectPlan}
           onCreatePlan={onCreatePlan}
@@ -52,10 +55,12 @@ export function HomePage({ onSelectPlan, onCreatePlan, onImport, onHistory, onSe
       </main>
 
       <button
+        type="button"
+        aria-label="Create plan"
         onClick={onCreatePlan}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-full shadow-lg shadow-indigo-300 flex items-center justify-center text-2xl hover:from-indigo-700 hover:to-purple-700 transition-all hover:scale-105"
+        className="fixed bottom-6 right-6 z-30 w-14 h-14 bg-primary-600 text-white rounded-full shadow-lift flex items-center justify-center hover:bg-primary-500 transition-all active:scale-95"
       >
-        +
+        <Plus size={28} aria-hidden />
       </button>
     </PageLayout>
   );

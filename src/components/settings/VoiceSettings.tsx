@@ -1,7 +1,13 @@
 import { useState, useEffect } from 'react';
+import { Bell, Mic, Play, Square } from 'lucide-react';
 import { voiceService } from '../../services/voice.service';
 import { audioService } from '../../services/audio.service';
 import { useSettingsStore } from '../../stores/settings.store';
+import { Card } from '../ui/Card';
+import { Switch } from '../ui/Switch';
+import { Slider } from '../ui/Slider';
+import { Button } from '../ui/Button';
+import { inputClass, labelClass } from '../ui/InputStyles';
 
 export function VoiceSettings() {
   const {
@@ -68,12 +74,14 @@ export function VoiceSettings() {
     return (
       <section>
         <div className="flex items-center gap-2 mb-3">
-          <span className="w-8 h-8 flex items-center justify-center bg-gray-100 text-gray-500 rounded-lg">🎙️</span>
-          <h2 className="text-lg font-semibold text-gray-700">Voice Guidance</h2>
+          <span className="w-8 h-8 flex items-center justify-center bg-brand-soft text-brand rounded-lg" aria-hidden>
+            <Mic size={16} />
+          </span>
+          <h2 className="text-base font-semibold text-ink">Voice Guidance</h2>
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <p className="text-gray-500 text-sm">Voice guidance is not supported in this browser.</p>
-        </div>
+        <Card>
+          <p className="text-ink-2 text-sm">Voice guidance is not supported in this browser.</p>
+        </Card>
       </section>
     );
   }
@@ -81,46 +89,36 @@ export function VoiceSettings() {
   return (
     <section>
       <div className="flex items-center gap-2 mb-3">
-        <span className="w-8 h-8 flex items-center justify-center bg-purple-100 text-purple-600 rounded-lg">🎙️</span>
-        <h2 className="text-lg font-semibold text-gray-700">Voice Guidance</h2>
+        <span className="w-8 h-8 flex items-center justify-center bg-brand-soft text-brand rounded-lg" aria-hidden>
+          <Mic size={16} />
+        </span>
+        <h2 className="text-base font-semibold text-ink">Voice Guidance</h2>
       </div>
-      <div className="bg-white rounded-xl p-4 space-y-4 shadow-sm">
-        <label className="flex items-center justify-between">
-          <span className="text-gray-700 font-medium">Voice Announcements</span>
-          <input
-            type="checkbox"
-            checked={voiceEnabled}
-            onChange={(e) => setVoiceEnabled(e.target.checked)}
-            className="w-5 h-5 accent-purple-600"
-          />
-        </label>
+      <Card className="space-y-4">
+        <div className="flex items-center justify-between">
+          <span className="text-ink font-medium">Voice Announcements</span>
+          <Switch label="Voice announcements" checked={voiceEnabled} onChange={setVoiceEnabled} />
+        </div>
 
         {voiceEnabled && (
           <>
             {/* Preview / Test Button */}
-            <div className="bg-purple-50 rounded-lg p-3">
-              <p className="text-sm text-purple-700 mb-2 font-medium">Preview & Test</p>
+            <div className="bg-surface-2 rounded-xl p-3">
+              <p className="text-sm text-ink-2 mb-2 font-medium">Preview &amp; Test</p>
               <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={handlePreview}
-                  className="flex-1 min-w-[120px] py-2 px-4 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
-                >
-                  <span>▶</span> Voice Sample
-                </button>
-                <button
-                  onClick={handleBeepPreview}
-                  className="flex-1 min-w-[120px] py-2 px-4 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
-                >
-                  <span>🔔</span> Beep Test
-                </button>
-                <button
-                  onClick={handleStop}
-                  className="py-2 px-4 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-colors"
-                >
-                  Stop
-                </button>
+                <Button size="sm" onClick={handlePreview} className="flex-1 min-w-[120px]">
+                  <Play size={14} aria-hidden />
+                  Voice Sample
+                </Button>
+                <Button size="sm" variant="secondary" onClick={handleBeepPreview} className="flex-1 min-w-[120px]">
+                  <Bell size={14} aria-hidden />
+                  Beep Test
+                </Button>
+                <Button size="sm" variant="ghost" onClick={handleStop} aria-label="Stop audio preview">
+                  <Square size={13} aria-hidden />
+                </Button>
               </div>
-              <p className="text-xs text-purple-500 mt-2">
+              <p className="text-xs text-ink-3 mt-2">
                 Voice: "{previewText}" | Beep: timer tick sound
               </p>
             </div>
@@ -128,13 +126,14 @@ export function VoiceSettings() {
             {/* Voice Selection */}
             {voices.length > 0 && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="voice-select" className={labelClass}>
                   Voice
                 </label>
                 <select
+                  id="voice-select"
                   value={selectedVoice}
                   onChange={(e) => setSelectedVoice(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                  className={`${inputClass} text-sm`}
                 >
                   {voices.map((voice) => (
                     <option key={voice.voiceURI} value={voice.voiceURI}>
@@ -146,76 +145,49 @@ export function VoiceSettings() {
             )}
 
             {/* Speech Rate */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Speech Rate: {voiceRate.toFixed(1)}x
-              </label>
-              <input
-                type="range"
-                min="0.5"
-                max="2"
-                step="0.1"
-                value={voiceRate}
-                onChange={(e) => setVoiceRate(parseFloat(e.target.value))}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
-              />
-              <div className="flex justify-between text-xs text-gray-400 mt-1">
-                <span>Slow</span>
-                <span>Fast</span>
-              </div>
-            </div>
+            <Slider
+              label="Speech Rate"
+              min={0.5}
+              max={2}
+              step={0.1}
+              value={voiceRate}
+              onChange={setVoiceRate}
+              formatValue={(v) => `${v.toFixed(1)}x`}
+            />
+
             {/* Announcement Toggles */}
-            <div className="border-t border-gray-100 pt-3">
-              <p className="text-sm font-medium text-gray-700 mb-2">Announcements</p>
-              <div className="space-y-2">
-                <label className="flex items-center justify-between">
-                  <span className="text-gray-600 text-sm">Stage names</span>
-                  <input
-                    type="checkbox"
-                    checked={announceStageName}
-                    onChange={(e) => setAnnounceStageName(e.target.checked)}
-                    className="w-4 h-4 accent-purple-600"
-                  />
-                </label>
-                <label className="flex items-center justify-between">
-                  <span className="text-gray-600 text-sm">Start/Stop cues</span>
-                  <input
-                    type="checkbox"
-                    checked={announceStartStop}
-                    onChange={(e) => setAnnounceStartStop(e.target.checked)}
-                    className="w-4 h-4 accent-purple-600"
-                  />
-                </label>
-                <label className="flex items-center justify-between">
-                  <span className="text-gray-600 text-sm">Rest periods</span>
-                  <input
-                    type="checkbox"
-                    checked={announceRest}
-                    onChange={(e) => setAnnounceRest(e.target.checked)}
-                    className="w-4 h-4 accent-purple-600"
-                  />
-                </label>
-                <label className="flex items-center justify-between">
-                  <span className="text-gray-600 text-sm">Countdown (3-2-1)</span>
-                  <input
-                    type="checkbox"
-                    checked={announceCountdown}
-                    onChange={(e) => setAnnounceCountdown(e.target.checked)}
-                    className="w-4 h-4 accent-purple-600"
-                  />
-                </label>
+            <div className="border-t border-line pt-3">
+              <p className="text-sm font-medium text-ink mb-2">Announcements</p>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-ink-2">Stage names</span>
+                  <Switch label="Announce stage names" checked={announceStageName} onChange={setAnnounceStageName} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-ink-2">Start/Stop cues</span>
+                  <Switch label="Announce start and stop cues" checked={announceStartStop} onChange={setAnnounceStartStop} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-ink-2">Rest periods</span>
+                  <Switch label="Announce rest periods" checked={announceRest} onChange={setAnnounceRest} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-ink-2">Countdown (3-2-1)</span>
+                  <Switch label="Announce countdown" checked={announceCountdown} onChange={setAnnounceCountdown} />
+                </div>
               </div>
             </div>
 
             {/* Pre-stage Warning */}
-            <div className="border-t border-gray-100 pt-3">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+            <div className="border-t border-line pt-3">
+              <label htmlFor="pre-stage-warning" className={labelClass}>
                 Pre-stage Warning
               </label>
               <select
+                id="pre-stage-warning"
                 value={preStageWarningSeconds}
                 onChange={(e) => setPreStageWarningSeconds(parseInt(e.target.value))}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                className={`${inputClass} text-sm`}
               >
                 <option value={0}>Off</option>
                 <option value={3}>3 seconds before</option>
@@ -225,7 +197,7 @@ export function VoiceSettings() {
             </div>
           </>
         )}
-      </div>
+      </Card>
     </section>
   );
 }

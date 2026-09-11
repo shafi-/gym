@@ -12,6 +12,7 @@ import { notificationService } from '../../services/notification.service';
 import { audioService } from '../../services/audio.service';
 import { voiceService } from '../../services/voice.service';
 import { Toast } from '../../components/ui/Toast';
+import { Spinner } from '../../components/ui/Spinner';
 import type { SessionProgress } from '../../services/session.service';
 import type { Plan } from '../../models/plan.model';
 
@@ -55,6 +56,17 @@ export function SessionContainer({ plan, onComplete, onCancel }: SessionContaine
       voiceService.setOnAnnounceCallback(() => {});
     };
   }, []);
+
+  // Haptic tick on every stage/rest transition (Android; no-op elsewhere).
+  const transitionKey = progress
+    ? `${progress.state}:${progress.currentStageIndex}:${progress.currentStage?.id ?? ''}`
+    : null;
+  const lastBuzzKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!transitionKey || transitionKey === lastBuzzKeyRef.current) return;
+    lastBuzzKeyRef.current = transitionKey;
+    navigator.vibrate?.(30);
+  }, [transitionKey]);
 
   useWakeLock(true);
 
@@ -177,8 +189,8 @@ export function SessionContainer({ plan, onComplete, onCancel }: SessionContaine
 
   if (!progress) {
     return (
-      <div className="flex items-center justify-center h-screen bg-surface-dark">
-        <div className="text-white text-lg">Loading session...</div>
+      <div className="flex items-center justify-center h-screen bg-night">
+        <Spinner />
       </div>
     );
   }
@@ -189,24 +201,29 @@ export function SessionContainer({ plan, onComplete, onCancel }: SessionContaine
     const seconds = sessionResult.duration % 60;
 
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900">
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-night animate-fade-in">
         <div className="text-center max-w-sm">
-          <span className="text-7xl mb-6 block animate-bounce">🎉</span>
-          <h1 className="text-3xl font-bold text-white mb-3">Session Complete!</h1>
-          <p className="text-purple-200 text-lg mb-1">{plan.name}</p>
-          <div className="flex justify-center gap-6 mt-4 mb-8">
-            <div className="text-center bg-white/10 rounded-xl px-5 py-3 backdrop-blur-sm">
-              <p className="text-2xl font-bold text-white">{sessionResult.stagesCompleted}</p>
-              <p className="text-sm text-purple-200">stages</p>
+          <span className="text-7xl mb-6 block animate-bounce" aria-hidden>
+            🎉
+          </span>
+          <h1 className="text-3xl font-bold text-night-ink mb-3">Session Complete!</h1>
+          <p className="text-night-ink-2 text-lg mb-1">{plan.name}</p>
+          <div className="flex justify-center gap-4 mt-6 mb-8">
+            <div className="text-center bg-night-surface rounded-xl px-6 py-3">
+              <p className="text-2xl font-bold text-night-ink tabular">{sessionResult.stagesCompleted}</p>
+              <p className="text-sm text-night-ink-2">stages</p>
             </div>
-            <div className="text-center bg-white/10 rounded-xl px-5 py-3 backdrop-blur-sm">
-              <p className="text-2xl font-bold text-white">{minutes}:{seconds.toString().padStart(2, '0')}</p>
-              <p className="text-sm text-purple-200">duration</p>
+            <div className="text-center bg-night-surface rounded-xl px-6 py-3">
+              <p className="text-2xl font-bold text-night-ink tabular">
+                {minutes}:{seconds.toString().padStart(2, '0')}
+              </p>
+              <p className="text-sm text-night-ink-2">duration</p>
             </div>
           </div>
           <button
+            type="button"
             onClick={handleFinishSession}
-            className="w-full py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-xl font-semibold hover:from-indigo-600 hover:to-purple-600 transition-all shadow-lg"
+            className="w-full min-h-[56px] bg-primary-600 text-white rounded-xl font-semibold text-lg hover:bg-primary-500 transition-colors active:scale-[0.98]"
           >
             Done
           </button>
@@ -220,8 +237,19 @@ export function SessionContainer({ plan, onComplete, onCancel }: SessionContaine
   const isUrgent = progress.timeRemaining <= 10;
 
   return (
-    <div className={`min-h-screen flex flex-col items-center justify-center p-6 ${isRest ? 'bg-rest' : 'bg-surface-dark'}`}>
-      <div className="w-full max-w-md flex flex-col items-center gap-5">
+    <div className={`min-h-screen flex flex-col items-center justify-center p-6 transition-colors duration-300 ${isRest ? 'bg-rest' : 'bg-night'}`}>
+      {/* Screen-reader announcement for stage transitions. */}
+      <div className="sr-only" aria-live="polite">
+        {progress.currentStage
+          ? isRest
+            ? `Rest. Up next: ${nextStage?.name ?? ''}`
+            : `Stage ${progress.currentStageIndex + 1}: ${progress.currentStage.name}`
+          : ''}
+      </div>
+      <div
+        key={transitionKey ?? 'idle'}
+        className="w-full max-w-md flex flex-col items-center gap-5 animate-stage-fade"
+      >
         <ProgressBar
           current={progress.currentStageIndex + 1}
           total={progress.totalStages}
@@ -234,14 +262,14 @@ export function SessionContainer({ plan, onComplete, onCancel }: SessionContaine
         />
 
         {progress.currentStage && (
-          <h2 className="text-white text-xl font-semibold text-center">
+          <h2 className="text-night-ink text-2xl font-semibold text-center">
             {progress.currentStage.name}
           </h2>
         )}
 
         {isRest && nextStage && (
-          <p className="text-blue-200 text-sm">
-            Up next: <span className="font-medium text-white">{nextStage.name}</span>
+          <p className="text-night-ink-2 text-sm -mt-3">
+            Up next: <span className="font-medium text-night-ink">{nextStage.name}</span>
           </p>
         )}
 
@@ -263,8 +291,8 @@ export function SessionContainer({ plan, onComplete, onCancel }: SessionContaine
       </div>
       {voiceToast && (
         <Toast
-          message={`🔊 ${voiceToast}`}
-          tone="success"
+          message={voiceToast}
+          tone="info"
           onDismiss={() => setVoiceToast(null)}
         />
       )}

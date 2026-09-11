@@ -1,7 +1,7 @@
-export function Spinner() {
+export function Spinner({ className = '' }: { className?: string }) {
   return (
-    <div className="flex items-center justify-center p-8">
-      <div className="w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
+    <div className={`flex items-center justify-center p-8 ${className}`} role="status" aria-label="Loading">
+      <div className="w-8 h-8 border-4 border-line border-t-brand rounded-full animate-spin" />
     </div>
   );
 }
